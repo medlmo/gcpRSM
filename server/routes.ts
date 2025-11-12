@@ -14,6 +14,7 @@ import {
   insertNotificationSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { requireRole, requireResourcePermission } from "./permissions";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -27,7 +28,24 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+async function attachUser(req: Request, res: Response, next: NextFunction) {
+  if (req.session.userId) {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        (req as any).user = sanitizeUser(user);
+      }
+    } catch (error) {
+      console.error("Error loading user:", error);
+    }
+  }
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Attach user to request for all API routes
+  app.use("/api", attachUser);
+  
   // Global auth middleware for all API routes except /api/auth
   app.use("/api", (req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith("/auth")) {
@@ -104,8 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Users
-  app.get("/api/users", async (_req, res) => {
+  // Users (Admin only)
+  app.get("/api/users", requireRole("admin"), async (_req, res) => {
     try {
       const users = await storage.getAllUsers();
       const sanitizedUsers = users.map(sanitizeUser);
@@ -115,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", requireRole("admin"), async (req, res) => {
     try {
       const user = await storage.getUser(req.params.id);
       if (!user) {
@@ -127,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", requireRole("admin"), async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       const hashedPassword = await hashPassword(userData.password);
@@ -141,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  app.patch("/api/users/:id", requireRole("admin"), async (req, res) => {
     try {
       const updateData = req.body;
       if (updateData.password) {
@@ -157,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", async (req, res) => {
+  app.delete("/api/users/:id", requireRole("admin"), async (req, res) => {
     try {
       const deleted = await storage.deleteUser(req.params.id);
       if (!deleted) {
@@ -191,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/suppliers", async (req, res) => {
+  app.post("/api/suppliers", requireResourcePermission("supplier", "add"), async (req, res) => {
     try {
       const supplierData = insertSupplierSchema.parse(req.body);
       const supplier = await storage.createSupplier(supplierData);
@@ -201,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/suppliers/:id", async (req, res) => {
+  app.patch("/api/suppliers/:id", requireResourcePermission("supplier", "edit"), async (req, res) => {
     try {
       const supplier = await storage.updateSupplier(req.params.id, req.body);
       if (!supplier) {
@@ -213,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/suppliers/:id", async (req, res) => {
+  app.delete("/api/suppliers/:id", requireResourcePermission("supplier", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteSupplier(req.params.id);
       if (!deleted) {
@@ -250,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tenders", async (req, res) => {
+  app.post("/api/tenders", requireResourcePermission("tender", "add"), async (req, res) => {
     try {
       const tenderData = insertTenderSchema.parse(req.body);
       const tender = await storage.createTender(tenderData);
@@ -260,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/tenders/:id", async (req, res) => {
+  app.patch("/api/tenders/:id", requireResourcePermission("tender", "edit"), async (req, res) => {
     try {
       const tender = await storage.updateTender(req.params.id, req.body);
       if (!tender) {
@@ -272,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tenders/:id", async (req, res) => {
+  app.delete("/api/tenders/:id", requireResourcePermission("tender", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteTender(req.params.id);
       if (!deleted) {
@@ -314,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bids", async (req, res) => {
+  app.post("/api/bids", requireResourcePermission("bid", "add"), async (req, res) => {
     try {
       const bidData = insertBidSchema.parse(req.body);
       const bid = await storage.createBid(bidData);
@@ -324,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/bids/:id", async (req, res) => {
+  app.patch("/api/bids/:id", requireResourcePermission("bid", "edit"), async (req, res) => {
     try {
       const bid = await storage.updateBid(req.params.id, req.body);
       if (!bid) {
@@ -336,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/bids/:id", async (req, res) => {
+  app.delete("/api/bids/:id", requireResourcePermission("bid", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteBid(req.params.id);
       if (!deleted) {
@@ -373,7 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/contracts", async (req, res) => {
+  app.post("/api/contracts", requireResourcePermission("contract", "add"), async (req, res) => {
     try {
       const contractData = insertContractSchema.parse(req.body);
       const contract = await storage.createContract(contractData);
@@ -383,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/contracts/:id", async (req, res) => {
+  app.patch("/api/contracts/:id", requireResourcePermission("contract", "edit"), async (req, res) => {
     try {
       const contract = await storage.updateContract(req.params.id, req.body);
       if (!contract) {
@@ -395,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/contracts/:id", async (req, res) => {
+  app.delete("/api/contracts/:id", requireResourcePermission("contract", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteContract(req.params.id);
       if (!deleted) {
@@ -432,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/service-orders", async (req, res) => {
+  app.post("/api/service-orders", requireResourcePermission("service_order", "add"), async (req, res) => {
     try {
       const orderData = insertServiceOrderSchema.parse(req.body);
       const order = await storage.createServiceOrder(orderData);
@@ -442,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/service-orders/:id", async (req, res) => {
+  app.patch("/api/service-orders/:id", requireResourcePermission("service_order", "edit"), async (req, res) => {
     try {
       const order = await storage.updateServiceOrder(req.params.id, req.body);
       if (!order) {
@@ -454,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/service-orders/:id", async (req, res) => {
+  app.delete("/api/service-orders/:id", requireResourcePermission("service_order", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteServiceOrder(req.params.id);
       if (!deleted) {
@@ -491,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/amendments", async (req, res) => {
+  app.post("/api/amendments", requireResourcePermission("amendment", "add"), async (req, res) => {
     try {
       const amendmentData = insertAmendmentSchema.parse(req.body);
       const amendment = await storage.createAmendment(amendmentData);
@@ -501,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/amendments/:id", async (req, res) => {
+  app.patch("/api/amendments/:id", requireResourcePermission("amendment", "edit"), async (req, res) => {
     try {
       const amendment = await storage.updateAmendment(req.params.id, req.body);
       if (!amendment) {
@@ -513,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/amendments/:id", async (req, res) => {
+  app.delete("/api/amendments/:id", requireResourcePermission("amendment", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteAmendment(req.params.id);
       if (!deleted) {
@@ -550,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requireResourcePermission("invoice", "add"), async (req, res) => {
     try {
       const invoiceData = insertInvoiceSchema.parse(req.body);
       const invoice = await storage.createInvoice(invoiceData);
@@ -560,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/invoices/:id", async (req, res) => {
+  app.patch("/api/invoices/:id", requireResourcePermission("invoice", "edit"), async (req, res) => {
     try {
       const invoice = await storage.updateInvoice(req.params.id, req.body);
       if (!invoice) {
@@ -572,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/invoices/:id", async (req, res) => {
+  app.delete("/api/invoices/:id", requireResourcePermission("invoice", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteInvoice(req.params.id);
       if (!deleted) {
