@@ -69,7 +69,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     "edit_contract",
     "edit_service_order",
     "edit_amendment",
-    "edit_invoice",
     "delete_tender",
     "delete_supplier",
     "delete_bid",
@@ -174,8 +173,8 @@ export function requireResourcePermission(resource: string, action: "add" | "edi
       }
     }
     
-    if (role === "marches_manager" && resource === "invoice" && action === "add") {
-      return res.status(403).json({ error: "Forbidden: Cannot add invoices" });
+    if (role === "marches_manager" && resource === "invoice" && (action === "add" || action === "edit")) {
+      return res.status(403).json({ error: "Forbidden: Cannot add or edit invoices" });
     }
     
     const permissionMap: Record<string, Permission> = {

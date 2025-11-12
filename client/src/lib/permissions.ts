@@ -68,7 +68,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     "edit_contract",
     "edit_service_order",
     "edit_amendment",
-    "edit_invoice",
     "delete_tender",
     "delete_supplier",
     "delete_bid",
