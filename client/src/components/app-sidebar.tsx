@@ -7,9 +7,12 @@ import {
   FileBarChart,
   Settings,
   Building2,
-  FolderKanban
+  FolderKanban,
+  LogOut
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
+import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
 
 import {
   Sidebar,
@@ -21,7 +24,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
 
 const menuItems = [
   {
@@ -84,7 +89,23 @@ const adminItems = [
 ]
 
 export function AppSidebar() {
-  const [location] = useLocation()
+  const [location, setLocation] = useLocation()
+  const { logout, user } = useAuth()
+  const { toast } = useToast()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setLocation("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
+      toast({
+        title: "Erreur",
+        description: "La déconnexion a échoué. Veuillez réessayer.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <Sidebar>
@@ -136,6 +157,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-4 border-t">
+        <div className="space-y-2">
+          {user && (
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              <div className="font-medium text-foreground">{user.username}</div>
+              <div>{user.email}</div>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={handleLogout}
+            data-testid="button-logout"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   )
 }

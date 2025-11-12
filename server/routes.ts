@@ -1,7 +1,7 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { hashPassword, sanitizeUser } from "./auth";
+import { hashPassword, sanitizeUser, verifyPassword } from "./auth";
 import { 
   insertUserSchema, 
   insertSupplierSchema, 
@@ -13,8 +13,82 @@ import {
   insertInvoiceSchema,
   insertNotificationSchema
 } from "@shared/schema";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1)
+});
+
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Global auth middleware for all API routes except /api/auth
+  app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/auth")) {
+      return next();
+    }
+    return requireAuth(req, res, next);
+  });
+
+  // Auth routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.email === email);
+      
+      if (!user || !(await verifyPassword(password, user.password))) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      req.session.regenerate((err) => {
+        if (err) {
+          return res.status(500).json({ error: "Session error" });
+        }
+        
+        req.session.userId = user.id;
+        
+        req.session.save((err) => {
+          if (err) {
+            return res.status(500).json({ error: "Session save error" });
+          }
+          res.json(sanitizeUser(user));
+        });
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.clearCookie('connect.sid');
+      res.status(204).send();
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(sanitizeUser(user));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Dashboard
   app.get("/api/dashboard/stats", async (_req, res) => {
     try {
