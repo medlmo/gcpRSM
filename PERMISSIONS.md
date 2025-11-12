@@ -12,9 +12,9 @@ Le système de gestion des marchés publics implémente un contrôle d'accès ba
 - Peut ajouter, modifier et supprimer toutes les ressources
 
 ### 2. Marches Manager (Gestionnaire des Marchés)
-- Peut gérer les appels d'offres, fournisseurs, offres et marchés
-- **Ne peut PAS ajouter de décomptes** (invoices)
-- Peut modifier les décomptes mais pas en créer
+- Peut ajouter, modifier et supprimer : appels d'offres, fournisseurs, offres
+- Peut ajouter et modifier (mais pas supprimer) : marchés, ordres de service, avenants
+- **Ne peut PAS ajouter ni supprimer de décomptes** (invoices) - uniquement les modifier
 - Pas d'accès à la section Administration
 
 ### 3. Technical Service (Service Technique)
@@ -41,11 +41,11 @@ Le système de gestion des marchés publics implémente un contrôle d'accès ba
 | Appels d'offres | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
 | Fournisseurs | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
 | Offres | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
-| Marchés | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
+| Marchés | ✅ CRUD | ✅ CR-U (pas de suppression) | ❌ | 👁️ Lecture |
 | **Exécution** |
-| Ordres de service | ✅ CRUD | ✅ CRUD | ✅ CRUD | 👁️ Lecture |
-| Avenants | ✅ CRUD | ✅ CRUD | ✅ CRUD | 👁️ Lecture |
-| Décomptes | ✅ CRUD | 👁️ CR-D (pas d'ajout) | ✅ CRUD | 👁️ Lecture |
+| Ordres de service | ✅ CRUD | ✅ CR-U (pas de suppression) | ✅ CRUD | 👁️ Lecture |
+| Avenants | ✅ CRUD | ✅ CR-U (pas de suppression) | ✅ CRUD | 👁️ Lecture |
+| Décomptes | ✅ CRUD | 👁️ -R-U (lecture/modification uniquement) | ✅ CRUD | 👁️ Lecture |
 
 *CRUD = Create, Read, Update, Delete*
 
@@ -106,10 +106,29 @@ function MyComponent() {
 
 #### 3. Interface Utilisateur
 
-La sidebar masque automatiquement les sections Administration pour les non-admins :
+La sidebar masque automatiquement les sections Administration pour les non-admins en utilisant le helper `canAccessAdmin` :
 
 ```typescript
-// Dans app-sidebar.tsx
+// Recommandé: utiliser le helper du hook
+import { useAuth } from "@/hooks/use-auth";
+
+function AppSidebar() {
+  const { user, canAccessAdmin } = useAuth();
+  
+  return (
+    <Sidebar>
+      {/* ... */}
+      {canAccessAdmin() && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Administration</SidebarGroupLabel>
+          {/* Liens administration */}
+        </SidebarGroup>
+      )}
+    </Sidebar>
+  );
+}
+
+// Alternative (si le hook n'est pas disponible dans le contexte)
 {user?.role === "admin" && (
   <SidebarGroup>
     <SidebarGroupLabel>Administration</SidebarGroupLabel>
