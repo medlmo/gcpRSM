@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
+import { canAccessAdmin, canAdd, canEdit, canDelete, hasPermission, type Permission } from "@/lib/permissions";
 
 type AuthUser = Omit<User, 'password'>;
 
@@ -41,5 +42,10 @@ export function useAuth() {
     logout: logoutMutation.mutateAsync,
     loginError: loginMutation.error,
     isLoggingIn: loginMutation.isPending,
+    canAccessAdmin: () => canAccessAdmin(user ?? null),
+    canAdd: (resource: string) => canAdd(user ?? null, resource),
+    canEdit: (resource: string) => canEdit(user ?? null, resource),
+    canDelete: (resource: string) => canDelete(user ?? null, resource),
+    hasPermission: (permission: Permission) => hasPermission(user ?? null, permission),
   };
 }
