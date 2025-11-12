@@ -14,16 +14,16 @@ Le système de gestion des marchés publics implémente un contrôle d'accès ba
 ### 2. Marches Manager (Gestionnaire des Marchés)
 - Peut ajouter, modifier et supprimer : appels d'offres, fournisseurs, offres
 - Peut ajouter et modifier (mais pas supprimer) : marchés, ordres de service, avenants
-- **Ne peut PAS ajouter ni supprimer de décomptes** (invoices) - uniquement les modifier
+- **Ne peut PAS ajouter, modifier ni supprimer de décomptes** (invoices) - lecture seule
 - Pas d'accès à la section Administration
 
 ### 3. Technical Service (Service Technique)
-- **Accès limité à l'onglet Exécution uniquement**
-- Peut ajouter et modifier :
+- **Peut voir** les onglets : Appels d'offres, Fournisseurs, Marchés (lecture seule)
+- **Peut ajouter, modifier et supprimer** dans l'onglet Exécution :
   - Ordres de service (service_orders)
   - Avenants (amendments)  
   - Décomptes (invoices)
-- Ne peut pas gérer les appels d'offres, fournisseurs, offres ou marchés
+- Ne peut pas ajouter/modifier/supprimer les appels d'offres, fournisseurs, offres ou marchés
 
 ### 4. Ordonnateur
 - **Accès en lecture seule** à toutes les sections
@@ -38,14 +38,14 @@ Le système de gestion des marchés publics implémente un contrôle d'accès ba
 | Utilisateurs | ✅ CRUD | ❌ | ❌ | ❌ |
 | Paramètres | ✅ CRUD | ❌ | ❌ | ❌ |
 | **Gestion** |
-| Appels d'offres | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
-| Fournisseurs | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
+| Appels d'offres | ✅ CRUD | ✅ CRUD | 👁️ Lecture | 👁️ Lecture |
+| Fournisseurs | ✅ CRUD | ✅ CRUD | 👁️ Lecture | 👁️ Lecture |
 | Offres | ✅ CRUD | ✅ CRUD | ❌ | 👁️ Lecture |
-| Marchés | ✅ CRUD | ✅ CR-U (pas de suppression) | ❌ | 👁️ Lecture |
+| Marchés | ✅ CRUD | ✅ CR-U (pas de suppression) | 👁️ Lecture | 👁️ Lecture |
 | **Exécution** |
 | Ordres de service | ✅ CRUD | ✅ CR-U (pas de suppression) | ✅ CRUD | 👁️ Lecture |
 | Avenants | ✅ CRUD | ✅ CR-U (pas de suppression) | ✅ CRUD | 👁️ Lecture |
-| Décomptes | ✅ CRUD | 👁️ -R-U (lecture/modification uniquement) | ✅ CRUD | 👁️ Lecture |
+| Décomptes | ✅ CRUD | 👁️ Lecture seule | ✅ CRUD | 👁️ Lecture |
 
 *CRUD = Create, Read, Update, Delete*
 
