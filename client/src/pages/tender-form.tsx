@@ -178,7 +178,7 @@ export default function TenderForm() {
                   name="estimatedBudget"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget estimé (MAD)</FormLabel>
+                      <FormLabel>Estimation (MAD)</FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ''} data-testid="input-estimatedBudget" />
                       </FormControl>
@@ -194,7 +194,7 @@ export default function TenderForm() {
                   name="procedureType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Type de procédure *</FormLabel>
+                      <FormLabel>Mode de Passation *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-procedureType">
