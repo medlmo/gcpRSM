@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tenders from "@/pages/tenders";
 import TenderForm from "@/pages/tender-form";
+import TenderDetail from "@/pages/tender-detail";
 import Suppliers from "@/pages/suppliers";
 import SupplierForm from "@/pages/supplier-form";
 import SupplierDetail from "@/pages/supplier-detail";
@@ -56,6 +57,9 @@ function Router() {
       </Route>
       <Route path="/tenders/:id/edit">
         {() => <ProtectedRoute component={TenderForm} />}
+      </Route>
+      <Route path="/tenders/:id">
+        {() => <ProtectedRoute component={TenderDetail} />}
       </Route>
       <Route path="/suppliers">
         {() => <ProtectedRoute component={Suppliers} />}
