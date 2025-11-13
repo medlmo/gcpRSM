@@ -45,7 +45,7 @@ export default function SupplierForm() {
     if (supplier && isEditing) {
       form.reset({
         name: supplier.name,
-        registrationNumber: supplier.registrationNumber,
+        registrationNumber: supplier.registrationNumber || "",
         taxId: supplier.taxId || "",
         address: supplier.address || "",
         city: supplier.city || "",
