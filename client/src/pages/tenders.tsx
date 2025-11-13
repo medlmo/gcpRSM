@@ -11,7 +11,6 @@ import {
   FileText,
   Calendar,
   DollarSign,
-  Building2,
   Layers,
   Download,
   Eye,
@@ -118,7 +117,7 @@ export default function Tenders() {
     const matchesSearch = 
       tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tender.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tender.masterAgency.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizeProcedureType(tender.procedureType).toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || normalizedStatus === statusFilter
     const matchesCategory = categoryFilter === "all" || tender.category === categoryFilter
@@ -272,14 +271,7 @@ export default function Tenders() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-muted-foreground">Maître d'ouvrage</p>
-                          <p className="font-medium">{tender.masterAgency}</p>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>

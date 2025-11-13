@@ -74,7 +74,6 @@ export default function TenderForm() {
     defaultValues: {
       reference: "",
       title: "",
-      masterAgency: "",
       procedureType: "Appel d'offres ouvert",
       category: "travaux",
       estimatedBudget: "",
@@ -94,7 +93,6 @@ export default function TenderForm() {
       form.reset({
         reference: tender.reference,
         title: tender.title,
-        masterAgency: tender.masterAgency,
         procedureType: normalizeProcedureType(tender.procedureType),
         category: tender.category,
         estimatedBudget: tender.estimatedBudget ? String(tender.estimatedBudget) : "",
@@ -153,7 +151,6 @@ export default function TenderForm() {
       ...data,
       reference: data.reference.trim(),
       title: data.title.trim(),
-      masterAgency: data.masterAgency.trim(),
       status: normalizeStatus(data.status),
       procedureType: normalizeProcedureType(data.procedureType),
       estimatedBudget: optionalString(data.estimatedBudget),
@@ -223,47 +220,33 @@ export default function TenderForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="lotsNumber"
-                render={({ field }) => {
-                  const { ref, value, onChange, ...rest } = field;
-                  return (
-                    <FormItem>
-                      <FormLabel>Nombre de lots</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={value ?? ''}
-                          onChange={(event) => {
-                            const inputValue = event.target.value;
-                            onChange(inputValue === "" ? undefined : Number(inputValue));
-                          }}
-                          ref={ref}
-                          data-testid="input-lotsNumber"
-                          {...rest}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="masterAgency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Maître d'ouvrage *</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-masterAgency" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  name="lotsNumber"
+                  render={({ field }) => {
+                    const { ref, value, onChange, ...rest } = field;
+                    return (
+                      <FormItem>
+                        <FormLabel>Nombre de lots</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={value ?? ''}
+                            onChange={(event) => {
+                              const inputValue = event.target.value;
+                              onChange(inputValue === "" ? undefined : Number(inputValue));
+                            }}
+                            ref={ref}
+                            data-testid="input-lotsNumber"
+                            {...rest}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
@@ -284,7 +267,7 @@ export default function TenderForm() {
                   name="provisionalGuaranteeAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Montant caution provisoire</FormLabel>
+                      <FormLabel>Montant caution provisoire (MAD)</FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ''} data-testid="input-provisionalGuaranteeAmount" />
                       </FormControl>
@@ -292,6 +275,7 @@ export default function TenderForm() {
                     </FormItem>
                   )}
                 />
+
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

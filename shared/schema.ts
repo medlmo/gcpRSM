@@ -38,7 +38,6 @@ export const tenders = pgTable("tenders", {
   reference: text("reference").notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
-  masterAgency: text("master_agency").notNull(), // Maître d'ouvrage
   procedureType: text("procedure_type").notNull(), // AO ouvert, restreint, concours, consultation
   category: text("category").notNull(), // travaux, fournitures, services
   estimatedBudget: decimal("estimated_budget", { precision: 15, scale: 2 }),
