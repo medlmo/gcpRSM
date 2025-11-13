@@ -58,7 +58,7 @@ export default function Suppliers() {
   const filteredSuppliers = suppliers?.filter(supplier => {
     const matchesSearch = 
       supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.registrationNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       supplier.email?.toLowerCase().includes(searchQuery.toLowerCase())
     
     const matchesStatus = statusFilter === "all" || supplier.status === statusFilter
@@ -176,6 +176,16 @@ export default function Suppliers() {
                             data-testid={`button-view-${supplier.id}`}
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/suppliers/${supplier.id}/edit`}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            data-testid={`button-edit-${supplier.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
                       </div>
