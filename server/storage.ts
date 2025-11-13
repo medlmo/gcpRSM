@@ -401,7 +401,7 @@ export class DatabaseStorage implements IStorage {
     const [allTenders] = await db.select({ count: sql<number>`count(*)` }).from(tenders);
     const [activeTenders] = await db.select({ count: sql<number>`count(*)` })
       .from(tenders)
-      .where(eq(tenders.status, 'published'));
+      .where(eq(tenders.status, 'publié'));
     
     const [allContracts] = await db.select({ count: sql<number>`count(*)` }).from(contracts);
     const [activeContracts] = await db.select({ count: sql<number>`count(*)` })
@@ -423,7 +423,7 @@ export class DatabaseStorage implements IStorage {
     .from(tenders)
     .where(
       and(
-        eq(tenders.status, 'published'),
+        eq(tenders.status, 'publié'),
         gte(tenders.submissionDeadline, now),
         lte(tenders.submissionDeadline, sevenDaysFromNow)
       )

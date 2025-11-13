@@ -19,7 +19,7 @@ export const users = pgTable("users", {
 export const suppliers = pgTable("suppliers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  registrationNumber: text("registration_number").notNull().unique(), // RC, ICE
+  registrationNumber: text("registration_number").unique(), // RC, ICE
   taxId: text("tax_id"),
   address: text("address"),
   city: text("city"),
@@ -48,12 +48,16 @@ export const tenders = pgTable("tenders", {
   openingDate: timestamp("opening_date"),
   technicalCriteria: jsonb("technical_criteria"), // Weighted criteria
   financialCriteria: jsonb("financial_criteria"),
-  status: text("status").notNull().default("draft"), // draft, published, closed, awarded, cancelled
+  status: text("status").notNull().default("en cours d'étude"), // en cours d'étude, publié, en cours de jugement, attribué, annulé
   documentUrl: text("document_url"), // Link to DCE
   importedFrom: text("imported_from"), // marchespublics.gov.ma or manual
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lotsNumber: integer("lots_number"),
+  provisionalGuaranteeAmount: decimal("provisional_guarantee_amount", { precision: 15, scale: 2 }),
+  openingLocation: text("opening_location"),
+  executionLocation: text("execution_location"),
 });
 
 // Bids/Offres Table
@@ -296,6 +300,16 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
   createdAt: true,
   performanceScore: true,
+}).extend({
+  registrationNumber: z.string().optional().or(z.literal("")),
+  taxId: z.string().optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+  city: z.string().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  email: z.string().optional().or(z.literal("")),
+  contactPerson: z.string().optional().or(z.literal("")),
+  category: z.string().optional(),
+  status: z.string().optional(),
 });
 
 export const insertTenderSchema = createInsertSchema(tenders).omit({
@@ -306,6 +320,17 @@ export const insertTenderSchema = createInsertSchema(tenders).omit({
   submissionDeadline: z.string().or(z.date()),
   openingDate: z.string().or(z.date()).optional(),
   publicationDate: z.string().or(z.date()).optional(),
+  lotsNumber: z.coerce.number().int().min(0).optional(),
+  provisionalGuaranteeAmount: z.string().optional(),
+  openingLocation: z.string().optional(),
+  executionLocation: z.string().optional(),
+  status: z.enum([
+    "en cours d'étude",
+    "publié",
+    "en cours de jugement",
+    "attribué",
+    "annulé",
+  ]),
 });
 
 export const insertBidSchema = createInsertSchema(bids).omit({

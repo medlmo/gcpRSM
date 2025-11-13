@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { insertTenderSchema, type InsertTender, type Tender } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -26,21 +25,67 @@ export default function TenderForm() {
     enabled: isEditing,
   });
 
+  const TENDER_STATUSES = [
+    "en cours d'étude",
+    "publié",
+    "en cours de jugement",
+    "attribué",
+    "annulé",
+  ] as const;
+
+  type TenderStatus = typeof TENDER_STATUSES[number];
+
+  const normalizeStatus = (status: string): TenderStatus => {
+    switch (status) {
+      case "draft":
+        return "en cours d'étude";
+      case "published":
+        return "publié";
+      case "closed":
+        return "en cours de jugement";
+      case "awarded":
+        return "attribué";
+      case "cancelled":
+        return "annulé";
+      default:
+        return "en cours d'étude";
+    }
+  };
+
+  const normalizeProcedureType = (procedureType: string) => {
+    switch (procedureType) {
+      case "AO ouvert":
+        return "Appel d'offres ouvert";
+      case "AO restreint":
+        return "Appel d'offres restreint";
+      case "Négociée compétitive":
+        return "Appel d'offres ouvert simplifié";
+      case "Concours":
+        return "Concours architectural";
+      case "Consultation":
+        return "Consultation architecturale";
+      default:
+        return procedureType;
+    }
+  };
+
   const form = useForm<InsertTender>({
     resolver: zodResolver(insertTenderSchema),
     defaultValues: {
       reference: "",
       title: "",
-      description: "",
       masterAgency: "",
-      procedureType: "AO ouvert",
+      procedureType: "Appel d'offres ouvert",
       category: "travaux",
-      estimatedBudget: "0",
+      estimatedBudget: "",
       currency: "MAD",
-      status: "draft",
+      status: "en cours d'étude",
       publicationDate: undefined,
       submissionDeadline: new Date().toISOString().split('T')[0],
-      openingDate: undefined,
+      lotsNumber: undefined,
+      provisionalGuaranteeAmount: "",
+      openingLocation: "",
+      executionLocation: "",
     },
   });
 
@@ -49,16 +94,18 @@ export default function TenderForm() {
       form.reset({
         reference: tender.reference,
         title: tender.title,
-        description: tender.description || "",
         masterAgency: tender.masterAgency,
-        procedureType: tender.procedureType,
+        procedureType: normalizeProcedureType(tender.procedureType),
         category: tender.category,
-        estimatedBudget: tender.estimatedBudget || "0",
+        estimatedBudget: tender.estimatedBudget ? String(tender.estimatedBudget) : "",
         currency: tender.currency,
-        status: tender.status,
+        status: normalizeStatus(tender.status),
         publicationDate: tender.publicationDate ? new Date(tender.publicationDate).toISOString().split('T')[0] : undefined,
         submissionDeadline: new Date(tender.submissionDeadline).toISOString().split('T')[0],
-        openingDate: tender.openingDate ? new Date(tender.openingDate).toISOString().split('T')[0] : undefined,
+        lotsNumber: tender.lotsNumber ?? undefined,
+        provisionalGuaranteeAmount: tender.provisionalGuaranteeAmount ? String(tender.provisionalGuaranteeAmount) : "",
+        openingLocation: tender.openingLocation || "",
+        executionLocation: tender.executionLocation || "",
       });
     }
   }, [tender, isEditing, form]);
@@ -88,11 +135,43 @@ export default function TenderForm() {
     },
   });
 
+  const sanitizeTenderPayload = (data: InsertTender): InsertTender => {
+    const optionalString = (value?: string | null) => {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      const trimmed = value.toString().trim();
+      return trimmed === "" ? undefined : trimmed;
+    };
+
+    const cleanedLotsNumber =
+      data.lotsNumber !== undefined && data.lotsNumber !== null && !Number.isNaN(data.lotsNumber)
+        ? data.lotsNumber
+        : undefined;
+
+    return {
+      ...data,
+      reference: data.reference.trim(),
+      title: data.title.trim(),
+      masterAgency: data.masterAgency.trim(),
+      status: normalizeStatus(data.status),
+      procedureType: normalizeProcedureType(data.procedureType),
+      estimatedBudget: optionalString(data.estimatedBudget),
+      provisionalGuaranteeAmount: optionalString(data.provisionalGuaranteeAmount),
+      openingLocation: optionalString(data.openingLocation),
+      executionLocation: optionalString(data.executionLocation),
+      lotsNumber: cleanedLotsNumber,
+      publicationDate:
+        typeof data.publicationDate === "string" ? optionalString(data.publicationDate) : data.publicationDate,
+    };
+  };
+
   const onSubmit = (data: InsertTender) => {
+    const payload = sanitizeTenderPayload(data);
     if (isEditing) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(payload);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -146,16 +225,30 @@ export default function TenderForm() {
 
               <FormField
                 control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value || ''} data-testid="input-description" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="lotsNumber"
+                render={({ field }) => {
+                  const { ref, value, onChange, ...rest } = field;
+                  return (
+                    <FormItem>
+                      <FormLabel>Nombre de lots</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={value ?? ''}
+                          onChange={(event) => {
+                            const inputValue = event.target.value;
+                            onChange(inputValue === "" ? undefined : Number(inputValue));
+                          }}
+                          ref={ref}
+                          data-testid="input-lotsNumber"
+                          {...rest}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -186,6 +279,19 @@ export default function TenderForm() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="provisionalGuaranteeAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Montant caution provisoire</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} data-testid="input-provisionalGuaranteeAmount" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -202,11 +308,12 @@ export default function TenderForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="AO ouvert">Appel d'offres ouvert</SelectItem>
-                          <SelectItem value="AO restreint">Appel d'offres restreint</SelectItem>
-                          <SelectItem value="Négociée compétitive">Négociée compétitive</SelectItem>
-                          <SelectItem value="Concours">Concours</SelectItem>
-                          <SelectItem value="Consultation">Consultation</SelectItem>
+                          <SelectItem value="Appel d'offres ouvert">Appel d'offres ouvert</SelectItem>
+                          <SelectItem value="Appel d'offres ouvert simplifié">Appel d'offres ouvert simplifié</SelectItem>
+                          <SelectItem value="Appel d'offres restreint">Appel d'offres restreint</SelectItem>
+                          <SelectItem value="Concours architectural">Concours architectural</SelectItem>
+                          <SelectItem value="Consultation architecturale">Consultation architecturale</SelectItem>
+                          <SelectItem value="Appel à manifestation d'intérêt">Appel à manifestation d'intérêt</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -250,11 +357,11 @@ export default function TenderForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="draft">Brouillon</SelectItem>
-                          <SelectItem value="published">Publié</SelectItem>
-                          <SelectItem value="closed">Clôturé</SelectItem>
-                          <SelectItem value="awarded">Attribué</SelectItem>
-                          <SelectItem value="cancelled">Annulé</SelectItem>
+                          <SelectItem value="en cours d'étude">En cours d'étude</SelectItem>
+                          <SelectItem value="publié">Publié</SelectItem>
+                          <SelectItem value="en cours de jugement">En cours de jugement</SelectItem>
+                          <SelectItem value="attribué">Attribué</SelectItem>
+                          <SelectItem value="annulé">Annulé</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -263,7 +370,7 @@ export default function TenderForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="submissionDeadline"
@@ -280,12 +387,26 @@ export default function TenderForm() {
 
                 <FormField
                   control={form.control}
-                  name="openingDate"
+                  name="openingLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date d'ouverture des plis</FormLabel>
+                      <FormLabel>Lieu d'ouverture des plis</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} value={typeof field.value === 'string' ? field.value : field.value?.toISOString().split('T')[0] || ''} data-testid="input-openingDate" />
+                        <Input {...field} value={field.value || ''} data-testid="input-openingLocation" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="executionLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lieu d'exécution</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ''} data-testid="input-executionLocation" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

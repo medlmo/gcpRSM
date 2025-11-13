@@ -12,6 +12,7 @@ import {
   Calendar,
   DollarSign,
   Building2,
+  Layers,
   Download,
   Eye,
   Edit,
@@ -39,15 +40,54 @@ export default function Tenders() {
     queryKey: ["/api/tenders"],
   })
 
+  const normalizeStatus = (status: string) => {
+    switch (status) {
+      case "draft":
+        return "en cours d'étude"
+      case "published":
+        return "publié"
+      case "closed":
+        return "en cours de jugement"
+      case "awarded":
+        return "attribué"
+      case "cancelled":
+        return "annulé"
+      default:
+        return status
+    }
+  }
+
+  const normalizeProcedureType = (procedureType: string) => {
+    switch (procedureType) {
+      case "AO ouvert":
+        return "Appel d'offres ouvert"
+      case "AO restreint":
+        return "Appel d'offres restreint"
+      case "Négociée compétitive":
+        return "Appel d'offres ouvert simplifié"
+      case "Concours":
+        return "Concours architectural"
+      case "Consultation":
+        return "Consultation architecturale"
+      default:
+        return procedureType
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: any; label: string }> = {
+      "en cours d'étude": { variant: "secondary", label: "En cours d'étude" },
+      "publié": { variant: "default", label: "Publié" },
+      "en cours de jugement": { variant: "outline", label: "En cours de jugement" },
+      "attribué": { variant: "default", label: "Attribué" },
+      "annulé": { variant: "destructive", label: "Annulé" },
       draft: { variant: "secondary", label: "Brouillon" },
       published: { variant: "default", label: "Publié" },
       closed: { variant: "outline", label: "Clôturé" },
       awarded: { variant: "default", label: "Attribué" },
       cancelled: { variant: "destructive", label: "Annulé" },
     }
-    const config = statusConfig[status] || statusConfig.draft
+    const config = statusConfig[status] || statusConfig["en cours d'étude"]
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
@@ -61,22 +101,26 @@ export default function Tenders() {
   }
 
   const getProcedureLabel = (procedure: string) => {
+    const normalized = normalizeProcedureType(procedure)
     const labels: Record<string, string> = {
-      "AO ouvert": "AO Ouvert",
-      "AO restreint": "AO Restreint",
-      "consultation": "Consultation",
-      "concours": "Concours",
+      "Appel d'offres ouvert": "Appel d'offres ouvert",
+      "Appel d'offres ouvert simplifié": "AO ouvert simplifié",
+      "Appel d'offres restreint": "Appel d'offres restreint",
+      "Concours architectural": "Concours architectural",
+      "Consultation architecturale": "Consultation architecturale",
+      "Appel à manifestation d'intérêt": "Appel à manifestation d'intérêt",
     }
-    return labels[procedure] || procedure
+    return labels[normalized] || normalized
   }
 
   const filteredTenders = tenders?.filter(tender => {
+    const normalizedStatus = normalizeStatus(tender.status)
     const matchesSearch = 
       tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tender.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tender.masterAgency.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesStatus = statusFilter === "all" || tender.status === statusFilter
+
+    const matchesStatus = statusFilter === "all" || normalizedStatus === statusFilter
     const matchesCategory = categoryFilter === "all" || tender.category === categoryFilter
     
     return matchesSearch && matchesStatus && matchesCategory
@@ -128,11 +172,11 @@ export default function Tenders() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="draft">Brouillon</SelectItem>
-                  <SelectItem value="published">Publié</SelectItem>
-                  <SelectItem value="closed">Clôturé</SelectItem>
-                  <SelectItem value="awarded">Attribué</SelectItem>
-                  <SelectItem value="cancelled">Annulé</SelectItem>
+                  <SelectItem value="en cours d'étude">En cours d'étude</SelectItem>
+                  <SelectItem value="publié">Publié</SelectItem>
+                  <SelectItem value="en cours de jugement">En cours de jugement</SelectItem>
+                  <SelectItem value="attribué">Attribué</SelectItem>
+                  <SelectItem value="annulé">Annulé</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -188,7 +232,7 @@ export default function Tenders() {
                           <CardTitle className="text-lg">
                             {tender.title}
                           </CardTitle>
-                          {getStatusBadge(tender.status)}
+                          {getStatusBadge(normalizeStatus(tender.status))}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{tender.reference}</span>
@@ -228,7 +272,7 @@ export default function Tenders() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         <div>
@@ -265,6 +309,13 @@ export default function Tenders() {
                               : "Non communiqué"
                             }
                           </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-muted-foreground">Nombre de lots</p>
+                          <p className="font-medium">{tender.lotsNumber ?? "Non défini"}</p>
                         </div>
                       </div>
                     </div>

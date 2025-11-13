@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { insertSupplierSchema, type InsertSupplier, type Supplier } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -98,11 +97,25 @@ export default function SupplierForm() {
     },
   });
 
+  const sanitizeSupplierPayload = (data: InsertSupplier): InsertSupplier => ({
+    ...data,
+    registrationNumber: data.registrationNumber?.trim()
+      ? data.registrationNumber.trim()
+      : undefined,
+    taxId: data.taxId?.trim() ? data.taxId.trim() : undefined,
+    address: data.address?.trim() ? data.address.trim() : undefined,
+    city: data.city?.trim() ? data.city.trim() : undefined,
+    phone: data.phone?.trim() ? data.phone.trim() : undefined,
+    email: data.email?.trim() ? data.email.trim() : undefined,
+    contactPerson: data.contactPerson?.trim() ? data.contactPerson.trim() : undefined,
+  });
+
   const onSubmit = (data: InsertSupplier) => {
+    const payload = sanitizeSupplierPayload(data);
     if (isEditing) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(payload);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -161,19 +174,19 @@ export default function SupplierForm() {
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="registrationNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ICE / RC *</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-registrationNumber" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="registrationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ICE</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-registrationNumber" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
                 <FormField
                   control={form.control}
@@ -196,7 +209,7 @@ export default function SupplierForm() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Catégorie *</FormLabel>
+                      <FormLabel>Catégorie</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-category">
@@ -220,7 +233,7 @@ export default function SupplierForm() {
                   name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Statut *</FormLabel>
+                      <FormLabel>Statut</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-status">
