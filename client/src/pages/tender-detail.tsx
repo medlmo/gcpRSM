@@ -26,12 +26,18 @@ export default function TenderDetail() {
   const params = useParams();
   const tenderId = params.id;
 
-  const { data: tender, isLoading } = useQuery<Tender>({
+  const { data: tender, isLoading, isError, refetch } = useQuery<Tender>({
     queryKey: ['/api/tenders', tenderId],
+    enabled: !!tenderId,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiRequest(`/api/tenders/${tenderId}`, 'DELETE'),
+    mutationFn: () => {
+      if (!tenderId) {
+        throw new Error("ID de l'appel d'offres manquant");
+      }
+      return apiRequest(`/api/tenders/${tenderId}`, 'DELETE');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tenders'] });
       toast({
@@ -104,6 +110,22 @@ export default function TenderDetail() {
     return labels[category] || category;
   };
 
+  if (!tenderId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-medium mb-2">ID manquant</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          L'ID de l'appel d'offres est manquant dans l'URL.
+        </p>
+        <Button onClick={() => navigate('/tenders')} data-testid="button-back-to-list">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour à la liste
+        </Button>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -132,6 +154,27 @@ export default function TenderDetail() {
               ))}
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <FileText className="h-16 w-16 text-destructive/50 mb-4" />
+        <h3 className="text-lg font-medium mb-2">Erreur de chargement</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Une erreur s'est produite lors du chargement de l'appel d'offres.
+        </p>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate('/tenders')} variant="outline" data-testid="button-back-to-list">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour à la liste
+          </Button>
+          <Button onClick={() => refetch()} data-testid="button-retry">
+            Réessayer
+          </Button>
         </div>
       </div>
     );
@@ -176,6 +219,7 @@ export default function TenderDetail() {
           <Button
             variant="outline"
             onClick={() => navigate(`/tenders/${tenderId}/edit`)}
+            disabled={!tender || isLoading}
             data-testid="button-edit"
           >
             <Edit className="w-4 h-4 mr-2" />
@@ -183,7 +227,11 @@ export default function TenderDetail() {
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" data-testid="button-delete">
+              <Button 
+                variant="destructive" 
+                disabled={!tender || isLoading || deleteMutation.isPending}
+                data-testid="button-delete"
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Supprimer
               </Button>
