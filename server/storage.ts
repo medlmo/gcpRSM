@@ -30,6 +30,20 @@ import {
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or } from "drizzle-orm";
 
+// Helper function to convert string dates to Date objects
+function convertDates<T extends Record<string, any>>(data: T): T {
+  const result = { ...data };
+  for (const key in result) {
+    if (result[key] && typeof result[key] === 'string') {
+      const dateValue = new Date(result[key] as string);
+      if (!isNaN(dateValue.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(result[key] as string)) {
+        result[key] = dateValue as any;
+      }
+    }
+  }
+  return result;
+}
+
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
@@ -183,13 +197,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTender(insertTender: InsertTender): Promise<Tender> {
-    const [tender] = await db.insert(tenders).values(insertTender).returning();
+    const [tender] = await db.insert(tenders).values(convertDates(insertTender) as any).returning();
     return tender;
   }
 
   async updateTender(id: string, tenderData: Partial<InsertTender>): Promise<Tender | undefined> {
     const [tender] = await db.update(tenders)
-      .set({ ...tenderData, updatedAt: new Date() })
+      .set({ ...convertDates(tenderData), updatedAt: new Date() } as any)
       .where(eq(tenders.id, id))
       .returning();
     return tender || undefined;
@@ -254,13 +268,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContract(insertContract: InsertContract): Promise<Contract> {
-    const [contract] = await db.insert(contracts).values(insertContract).returning();
+    const [contract] = await db.insert(contracts).values(convertDates(insertContract) as any).returning();
     return contract;
   }
 
   async updateContract(id: string, contractData: Partial<InsertContract>): Promise<Contract | undefined> {
     const [contract] = await db.update(contracts)
-      .set({ ...contractData, updatedAt: new Date() })
+      .set({ ...convertDates(contractData), updatedAt: new Date() } as any)
       .where(eq(contracts.id, id))
       .returning();
     return contract || undefined;
@@ -288,12 +302,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createServiceOrder(insertOrder: InsertServiceOrder): Promise<ServiceOrder> {
-    const [order] = await db.insert(serviceOrders).values(insertOrder).returning();
+    const [order] = await db.insert(serviceOrders).values(convertDates(insertOrder) as any).returning();
     return order;
   }
 
   async updateServiceOrder(id: string, orderData: Partial<InsertServiceOrder>): Promise<ServiceOrder | undefined> {
-    const [order] = await db.update(serviceOrders).set(orderData).where(eq(serviceOrders.id, id)).returning();
+    const [order] = await db.update(serviceOrders).set(convertDates(orderData) as any).where(eq(serviceOrders.id, id)).returning();
     return order || undefined;
   }
 
@@ -319,12 +333,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAmendment(insertAmendment: InsertAmendment): Promise<Amendment> {
-    const [amendment] = await db.insert(amendments).values(insertAmendment).returning();
+    const [amendment] = await db.insert(amendments).values(convertDates(insertAmendment) as any).returning();
     return amendment;
   }
 
   async updateAmendment(id: string, amendmentData: Partial<InsertAmendment>): Promise<Amendment | undefined> {
-    const [amendment] = await db.update(amendments).set(amendmentData).where(eq(amendments.id, id)).returning();
+    const [amendment] = await db.update(amendments).set(convertDates(amendmentData) as any).where(eq(amendments.id, id)).returning();
     return amendment || undefined;
   }
 
@@ -350,12 +364,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
-    const [invoice] = await db.insert(invoices).values(insertInvoice).returning();
+    const [invoice] = await db.insert(invoices).values(convertDates(insertInvoice) as any).returning();
     return invoice;
   }
 
   async updateInvoice(id: string, invoiceData: Partial<InsertInvoice>): Promise<Invoice | undefined> {
-    const [invoice] = await db.update(invoices).set(invoiceData).where(eq(invoices.id, id)).returning();
+    const [invoice] = await db.update(invoices).set(convertDates(invoiceData) as any).where(eq(invoices.id, id)).returning();
     return invoice || undefined;
   }
 
