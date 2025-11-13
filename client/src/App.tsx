@@ -19,6 +19,9 @@ import SupplierDetail from "@/pages/supplier-detail";
 import Bids from "@/pages/bids";
 import Contracts from "@/pages/contracts";
 import Execution from "@/pages/execution";
+import ServiceOrderForm from "@/pages/service-order-form";
+import AmendmentForm from "@/pages/amendment-form";
+import InvoiceForm from "@/pages/invoice-form";
 import Reports from "@/pages/reports";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
@@ -81,6 +84,15 @@ function Router() {
       </Route>
       <Route path="/execution">
         {() => <ProtectedRoute component={Execution} />}
+      </Route>
+      <Route path="/execution/service-orders/new">
+        {() => <ProtectedRoute component={ServiceOrderForm} />}
+      </Route>
+      <Route path="/execution/amendments/new">
+        {() => <ProtectedRoute component={AmendmentForm} />}
+      </Route>
+      <Route path="/execution/invoices/new">
+        {() => <ProtectedRoute component={InvoiceForm} />}
       </Route>
       <Route path="/reports">
         {() => <ProtectedRoute component={Reports} />}

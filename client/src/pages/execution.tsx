@@ -114,10 +114,12 @@ export default function Execution() {
                   data-testid="input-search-orders"
                 />
               </div>
-              <Button data-testid="button-create-order">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvel ordre
-              </Button>
+              <Link href="/execution/service-orders/new">
+                <Button data-testid="button-create-order">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvel ordre
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               {loadingOrders ? (
@@ -171,10 +173,12 @@ export default function Execution() {
                   <p className="text-sm text-muted-foreground mb-6">
                     Commencez par créer votre premier ordre de service
                   </p>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un ordre
-                  </Button>
+                  <Link href="/execution/service-orders/new">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Créer un ordre
+                    </Button>
+                  </Link>
                 </div>
               )}
             </CardContent>
@@ -194,10 +198,12 @@ export default function Execution() {
                   data-testid="input-search-amendments"
                 />
               </div>
-              <Button data-testid="button-create-amendment">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvel avenant
-              </Button>
+              <Link href="/execution/amendments/new">
+                <Button data-testid="button-create-amendment">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvel avenant
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               {loadingAmendments ? (
@@ -262,10 +268,12 @@ export default function Execution() {
                   <p className="text-sm text-muted-foreground mb-6">
                     Les avenants aux marchés apparaîtront ici
                   </p>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un avenant
-                  </Button>
+                  <Link href="/execution/amendments/new">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Créer un avenant
+                    </Button>
+                  </Link>
                 </div>
               )}
             </CardContent>
@@ -285,10 +293,12 @@ export default function Execution() {
                   data-testid="input-search-invoices"
                 />
               </div>
-              <Button data-testid="button-create-invoice">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouveau décompte
-              </Button>
+              <Link href="/execution/invoices/new">
+                <Button data-testid="button-create-invoice">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouveau décompte
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               {loadingInvoices ? (
@@ -369,10 +379,12 @@ export default function Execution() {
                   <p className="text-sm text-muted-foreground mb-6">
                     Les décomptes de paiement apparaîtront ici
                   </p>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un décompte
-                  </Button>
+                  <Link href="/execution/invoices/new">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Créer un décompte
+                    </Button>
+                  </Link>
                 </div>
               )}
             </CardContent>
