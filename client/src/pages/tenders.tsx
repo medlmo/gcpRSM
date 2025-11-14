@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,18 +26,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { formatDistanceToNow } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useToast } from "@/hooks/use-toast"
+import { apiRequest, queryClient } from "@/lib/queryClient"
 import type { Tender } from "@shared/schema"
 
 export default function Tenders() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [tenderToDelete, setTenderToDelete] = useState<Tender | null>(null)
+  const { toast } = useToast()
 
   const { data: tenders, isLoading } = useQuery<Tender[]>({
     queryKey: ["/api/tenders"],
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (tenderId: string) => {
+      return apiRequest(`/api/tenders/${tenderId}`, 'DELETE')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tenders'] })
+      toast({
+        title: "Succès",
+        description: "L'appel d'offres a été supprimé avec succès.",
+      })
+      setDeleteDialogOpen(false)
+      setTenderToDelete(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      })
+    },
+  })
+
+  const handleDeleteClick = (tender: Tender) => {
+    setTenderToDelete(tender)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (tenderToDelete) {
+      deleteMutation.mutate(tenderToDelete.id)
+    }
+  }
 
   const normalizeStatus = (status: string) => {
     switch (status) {
@@ -260,6 +308,14 @@ export default function Tenders() {
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleDeleteClick(tender)}
+                          data-testid={`button-delete-${tender.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -341,6 +397,28 @@ export default function Tenders() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'appel d'offres "{tenderToDelete?.title}" ?
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
