@@ -370,14 +370,13 @@ export default function TenderDetail() {
             )}
 
             <div>
-              <label className="text-sm text-muted-foreground">Date limite de soumission</label>
+              <label className="text-sm text-muted-foreground">Date et heure limite de soumission</label>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <p className="text-base" data-testid="text-submissionDeadline">
-                  {new Date(tender.submissionDeadline).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
+                  {new Date(tender.submissionDeadline).toLocaleString('fr-FR', {
+                    dateStyle: 'long',
+                    timeStyle: 'short',
                   })}
                 </p>
               </div>

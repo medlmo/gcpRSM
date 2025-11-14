@@ -13,6 +13,36 @@ import { useToast } from "@/hooks/use-toast";
 import { insertTenderSchema, type InsertTender, type Tender } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
+const pad = (value: number) => String(value).padStart(2, "0");
+
+const formatDateInput = (value?: string | Date) => {
+  if (!value) return undefined;
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return undefined;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const formatDateTimeLocalInput = (value?: string | Date) => {
+  if (!value) return "";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const toISOStringIfPossible = (value?: string | Date | null) => {
+  if (!value) {
+    return undefined;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toISOString();
+};
+
 export default function TenderForm() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -80,7 +110,7 @@ export default function TenderForm() {
       currency: "MAD",
       status: "en cours d'étude",
       publicationDate: undefined,
-      submissionDeadline: new Date().toISOString().split('T')[0],
+      submissionDeadline: formatDateTimeLocalInput(new Date()),
       lotsNumber: undefined,
       provisionalGuaranteeAmount: "",
       openingLocation: "",
@@ -98,8 +128,8 @@ export default function TenderForm() {
         estimatedBudget: tender.estimatedBudget ? String(tender.estimatedBudget) : "",
         currency: tender.currency,
         status: normalizeStatus(tender.status),
-        publicationDate: tender.publicationDate ? new Date(tender.publicationDate).toISOString().split('T')[0] : undefined,
-        submissionDeadline: new Date(tender.submissionDeadline).toISOString().split('T')[0],
+        publicationDate: formatDateInput(tender.publicationDate),
+        submissionDeadline: formatDateTimeLocalInput(tender.submissionDeadline),
         lotsNumber: tender.lotsNumber ?? undefined,
         provisionalGuaranteeAmount: tender.provisionalGuaranteeAmount ? String(tender.provisionalGuaranteeAmount) : "",
         openingLocation: tender.openingLocation || "",
@@ -153,6 +183,7 @@ export default function TenderForm() {
       title: data.title.trim(),
       status: normalizeStatus(data.status),
       procedureType: normalizeProcedureType(data.procedureType),
+      submissionDeadline: toISOStringIfPossible(data.submissionDeadline),
       estimatedBudget: optionalString(data.estimatedBudget),
       provisionalGuaranteeAmount: optionalString(data.provisionalGuaranteeAmount),
       openingLocation: optionalString(data.openingLocation),
@@ -360,9 +391,19 @@ export default function TenderForm() {
                   name="submissionDeadline"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date limite de soumission *</FormLabel>
+                    <FormLabel>Date et heure limite de soumission *</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} value={typeof field.value === 'string' ? field.value : field.value?.toISOString().split('T')[0] || ''} data-testid="input-submissionDeadline" />
+                      <Input
+                        type="datetime-local"
+                        {...field}
+                        value={
+                          typeof field.value === "string"
+                            ? field.value
+                            : formatDateTimeLocalInput(field.value)
+                        }
+                        onChange={(event) => field.onChange(event.target.value)}
+                        data-testid="input-submissionDeadline"
+                      />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

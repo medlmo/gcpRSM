@@ -96,7 +96,7 @@ export default function Users() {
 
   const createMutation = useMutation({
     mutationFn: async (data: UserFormData) => {
-      return apiRequest("POST", "/api/users", data)
+      return apiRequest("/api/users", "POST", data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] })
@@ -122,7 +122,7 @@ export default function Users() {
       if (!updateData.password || updateData.password === "") {
         delete updateData.password
       }
-      return apiRequest("PATCH", `/api/users/${id}`, updateData)
+      return apiRequest(`/api/users/${id}`, "PATCH", updateData)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] })
@@ -144,7 +144,7 @@ export default function Users() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/users/${id}`)
+      return apiRequest(`/api/users/${id}`, "DELETE")
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] })

@@ -28,7 +28,6 @@ export const suppliers = pgTable("suppliers", {
   contactPerson: text("contact_person"),
   category: text("category"), // travaux, fournitures, services
   status: text("status").notNull().default("active"), // active, suspended, blacklisted
-  performanceScore: decimal("performance_score", { precision: 3, scale: 2 }).default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -298,7 +297,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
   createdAt: true,
-  performanceScore: true,
 }).extend({
   registrationNumber: z.string().optional().or(z.literal("")),
   taxId: z.string().optional().or(z.literal("")),

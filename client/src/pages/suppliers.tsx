@@ -4,14 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Plus, 
-  Search, 
+import {
+  Plus,
+  Search,
   Building2,
   Mail,
   Phone,
   MapPin,
-  Star,
   Eye,
   Edit,
   Trash2
@@ -212,14 +211,6 @@ export default function Suppliers() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="h-4 w-4 shrink-0" />
                         <span>{supplier.city}</span>
-                      </div>
-                    )}
-                    {supplier.performanceScore && (
-                      <div className="flex items-center gap-2 pt-2 border-t">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        <span className="font-medium">
-                          Score: {Number(supplier.performanceScore).toFixed(1)}/10
-                        </span>
                       </div>
                     )}
                   </CardContent>

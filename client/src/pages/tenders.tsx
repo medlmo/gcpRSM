@@ -268,11 +268,14 @@ export default function Tenders() {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-muted-foreground">Date limite</p>
+                          <p className="text-muted-foreground">Date & heure limite</p>
                           <p className="font-medium">
                             {tender.submissionDeadline ? (
                               <>
-                                {new Date(tender.submissionDeadline).toLocaleDateString('fr-FR')}
+                                {new Date(tender.submissionDeadline).toLocaleString('fr-FR', {
+                                  dateStyle: "long",
+                                  timeStyle: "short",
+                                })}
                                 <span className="text-xs text-muted-foreground ml-2">
                                   ({formatDistanceToNow(new Date(tender.submissionDeadline), {
                                     addSuffix: true,

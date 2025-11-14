@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Edit, Trash2, Building2, Mail, Phone, MapPin, Calendar, Star } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Building2, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -217,17 +217,6 @@ export default function SupplierDetail() {
               </div>
             </div>
 
-            {supplier.performanceScore && (
-              <div>
-                <label className="text-sm text-muted-foreground">Score de performance</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Star className="h-4 w-4 text-yellow-500" />
-                  <p className="text-base font-medium" data-testid="text-performanceScore">
-                    {Number(supplier.performanceScore).toFixed(1)}/10
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
