@@ -425,7 +425,7 @@ export class DatabaseStorage implements IStorage {
     const [allSuppliers] = await db.select({ count: sql<number>`count(*)` }).from(suppliers);
     
     const [budgetResult] = await db.select({ 
-      total: sql<number>`COALESCE(SUM(CAST(${contracts.contractAmount} AS DECIMAL)), 0)` 
+      total: sql<number>`COALESCE(SUM(CAST(${contracts.totalAmount} AS DECIMAL)), 0)` 
     }).from(contracts);
 
     const upcomingTenderDeadlines = await db.select({
