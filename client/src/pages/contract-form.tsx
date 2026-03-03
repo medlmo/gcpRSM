@@ -78,7 +78,7 @@ export default function ContractForm() {
       visaDate: "",
       startDate: "",
       guaranteeAmount: "",
-      status: "signed",
+      contractType: null,
     },
   })
 
@@ -98,7 +98,7 @@ export default function ContractForm() {
         visaDate: formatDateInput(contract.visaDate),
         startDate: formatDateInput(contract.startDate),
         guaranteeAmount: contract.guaranteeAmount ? String(contract.guaranteeAmount) : "",
-        status: contract.status,
+        contractType: (contract.contractType as any) ?? null,
       })
     }
   }, [contract, isEditing, form])
@@ -271,22 +271,24 @@ export default function ContractForm() {
 
               <FormField
                 control={form.control}
-                name="status"
+                name="contractType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Statut</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <FormLabel>Type de marché</FormLabel>
+                    <Select
+                      value={field.value ?? ""}
+                      onValueChange={(v) => field.onChange(v === "" ? null : v)}
+                    >
                       <FormControl>
-                        <SelectTrigger data-testid="select-status">
-                          <SelectValue placeholder="Statut" />
+                        <SelectTrigger data-testid="select-contract-type">
+                          <SelectValue placeholder="Sélectionner un type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="signed">Signé</SelectItem>
-                        <SelectItem value="in_progress">En cours</SelectItem>
-                        <SelectItem value="suspended">Suspendu</SelectItem>
-                        <SelectItem value="completed">Terminé</SelectItem>
-                        <SelectItem value="terminated">Résilié</SelectItem>
+                        <SelectItem value="marché unique">Marché unique</SelectItem>
+                        <SelectItem value="marché reconductible">Marché reconductible</SelectItem>
+                        <SelectItem value="marché cadre">Marché cadre</SelectItem>
+                        <SelectItem value="marché négocié">Marché négocié</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -475,8 +477,11 @@ export default function ContractForm() {
                     <FormControl>
                       <Input
                         type="date"
-                        {...field}
-                        value={field.value ?? ""}
+                        value={formatDateInput(field.value as string | Date | null | undefined)}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                         data-testid="input-visa-date"
                       />
                     </FormControl>
@@ -494,8 +499,11 @@ export default function ContractForm() {
                     <FormControl>
                       <Input
                         type="date"
-                        {...field}
-                        value={field.value ?? ""}
+                        value={formatDateInput(field.value as string | Date | null | undefined)}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                         data-testid="input-start-date"
                       />
                     </FormControl>

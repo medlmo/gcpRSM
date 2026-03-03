@@ -100,6 +100,7 @@ export const contracts = pgTable("contracts", {
   actualEndDate: timestamp("actual_end_date"),
   executionDelay: integer("execution_delay"),
   guaranteeDelay: integer("guarantee_delay"),
+  contractType: text("contract_type"), // marché unique, marché reconductible, marché cadre, marché négocié
   status: text("status").notNull().default("signed"), // signed, in_progress, suspended, completed, terminated
   guaranteeAmount: decimal("guarantee_amount", { precision: 15, scale: 2 }),
   guaranteeType: text("guarantee_type"), // cautionnement, retenue de garantie
@@ -358,6 +359,12 @@ export const insertContractSchema = createInsertSchema(contracts).omit({
   executionDelay: z.coerce.number().int().min(0).optional().nullable(),
   guaranteeDelay: z.coerce.number().int().min(0).optional().nullable(),
   guaranteeAmount: z.string().optional().nullable(),
+  contractType: z.enum([
+    "marché unique",
+    "marché reconductible",
+    "marché cadre",
+    "marché négocié",
+  ]).optional().nullable(),
 });
 
 export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({

@@ -41,7 +41,7 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const { toast } = useToast()
 
@@ -80,16 +80,17 @@ export default function Contracts() {
     return supplier ? supplier.name : "—"
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; label: string }> = {
-      signed: { variant: "secondary", label: "Signé" },
-      in_progress: { variant: "default", label: "En cours" },
-      suspended: { variant: "outline", label: "Suspendu" },
-      completed: { variant: "default", label: "Terminé" },
-      terminated: { variant: "destructive", label: "Résilié" },
+  const getContractTypeBadge = (contractType: string | null | undefined) => {
+    if (!contractType) return <Badge variant="outline">—</Badge>
+    const typeConfig: Record<string, { variant: any }> = {
+      "marché unique": { variant: "default" },
+      "marché reconductible": { variant: "secondary" },
+      "marché cadre": { variant: "outline" },
+      "marché négocié": { variant: "secondary" },
     }
-    const config = statusConfig[status] || statusConfig.signed
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    const config = typeConfig[contractType] || { variant: "outline" }
+    const label = contractType.charAt(0).toUpperCase() + contractType.slice(1)
+    return <Badge variant={config.variant}>{label}</Badge>
   }
 
   const formatDate = (value: string | Date | null | undefined) => {
@@ -112,8 +113,8 @@ export default function Contracts() {
       contract.contractNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (tender?.reference || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (supplier?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || contract.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesType = typeFilter === "all" || (contract as any).contractType === typeFilter
+    return matchesSearch && matchesType
   })
 
   return (
@@ -148,17 +149,16 @@ export default function Contracts() {
                 data-testid="input-search"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-44" data-testid="select-status">
-                <SelectValue placeholder="Statut" />
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-52" data-testid="select-type">
+                <SelectValue placeholder="Type de marché" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="signed">Signé</SelectItem>
-                <SelectItem value="in_progress">En cours</SelectItem>
-                <SelectItem value="suspended">Suspendu</SelectItem>
-                <SelectItem value="completed">Terminé</SelectItem>
-                <SelectItem value="terminated">Résilié</SelectItem>
+                <SelectItem value="all">Tous les types</SelectItem>
+                <SelectItem value="marché unique">Marché unique</SelectItem>
+                <SelectItem value="marché reconductible">Marché reconductible</SelectItem>
+                <SelectItem value="marché cadre">Marché cadre</SelectItem>
+                <SelectItem value="marché négocié">Marché négocié</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -200,7 +200,7 @@ export default function Contracts() {
                           >
                             {contract.contractNumber}
                           </span>
-                          {getStatusBadge(contract.status)}
+                          {getContractTypeBadge((contract as any).contractType)}
                         </div>
                         <p
                           className="text-muted-foreground text-sm mb-4"
@@ -346,11 +346,11 @@ export default function Contracts() {
               <Briefcase className="h-16 w-16 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">Aucun marché trouvé</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                {searchQuery || statusFilter !== "all"
+                {searchQuery || typeFilter !== "all"
                   ? "Essayez de modifier vos filtres de recherche"
                   : "Commencez par créer votre premier marché"}
               </p>
-              {!searchQuery && statusFilter === "all" && (
+              {!searchQuery && typeFilter === "all" && (
                 <Link href="/contracts/new">
                   <Button data-testid="button-new-contract-empty">
                     <Plus className="h-4 w-4 mr-2" />
