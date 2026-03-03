@@ -162,8 +162,11 @@ export default function Bids() {
     },
   })
 
+  const isGlobalMode = addBidTenderId === "__global__"
+
   const onSubmitBid = (data: BidFormData) => {
-    createBidMutation.mutate({ ...data, tenderId: addBidTenderId! })
+    const tenderId = isGlobalMode ? data.tenderId : addBidTenderId!
+    createBidMutation.mutate({ ...data, tenderId })
   }
 
   const getSupplierName = (supplierId: string) =>
@@ -181,12 +184,11 @@ export default function Bids() {
     if (!tenders || !bids) return []
     return tenders
       .filter((t) => {
-        const hasBids = bids.some((b) => b.tenderId === t.id)
         const matchesSearch =
           t.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.title.toLowerCase().includes(searchQuery.toLowerCase())
         const matchesTender = selectedTenderId === "all" || t.id === selectedTenderId
-        return hasBids && matchesSearch && matchesTender
+        return matchesSearch && matchesTender
       })
       .map((tender) => {
         const tenderBids = bids.filter((b) => b.tenderId === tender.id)
@@ -196,7 +198,7 @@ export default function Bids() {
           estimation,
           tenderBids
         )
-        return { tender, evaluated, prixDeReference, retainedCount, estimation }
+        return { tender, evaluated, prixDeReference, retainedCount, estimation, hasBids: tenderBids.length > 0 }
       })
   }, [tenders, bids, searchQuery, selectedTenderId])
 
@@ -223,6 +225,25 @@ export default function Bids() {
           <h1 className="text-3xl font-medium" data-testid="page-title">Offres soumises</h1>
           <p className="text-muted-foreground mt-1">Évaluation des offres et calcul du prix de référence</p>
         </div>
+        <Button
+          onClick={() => {
+            setAddBidTenderId("__global__")
+            form.reset({
+              tenderId: "",
+              supplierId: "",
+              proposedAmount: "",
+              finalAmount: "",
+              discount: "",
+              deliveryTime: undefined,
+              currency: "MAD",
+              status: "submitted",
+            })
+          }}
+          data-testid="button-new-bid"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle offre
+        </Button>
       </div>
 
       <Card>
@@ -347,7 +368,37 @@ export default function Bids() {
                       )}
                     </CardHeader>
 
-                    {isExpanded && (
+                    {isExpanded && !hasBids && (
+                      <CardContent className="pt-0">
+                        <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed rounded-lg">
+                          <FolderKanban className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                          <p className="text-sm font-medium text-muted-foreground mb-1">Aucune offre enregistrée</p>
+                          <p className="text-xs text-muted-foreground mb-4">Ajoutez les offres des concurrents pour cet appel d'offres</p>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setAddBidTenderId(tender.id)
+                              form.reset({
+                                tenderId: tender.id,
+                                supplierId: "",
+                                proposedAmount: "",
+                                finalAmount: "",
+                                discount: "",
+                                deliveryTime: undefined,
+                                currency: tender.currency,
+                                status: "submitted",
+                              })
+                            }}
+                            data-testid={`button-add-first-bid-${tender.id}`}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Ajouter une offre
+                          </Button>
+                        </div>
+                      </CardContent>
+                    )}
+
+                    {isExpanded && hasBids && (
                       <CardContent className="pt-0">
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border-collapse">
@@ -474,6 +525,32 @@ export default function Bids() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmitBid)} className="space-y-4">
+              {isGlobalMode && (
+                <FormField
+                  control={form.control}
+                  name="tenderId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Appel d'offres *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-tender-form">
+                            <SelectValue placeholder="Sélectionner un AO" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tenders?.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.reference} — {t.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="supplierId"
