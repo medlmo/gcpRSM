@@ -78,6 +78,9 @@ export default function TenderForm() {
       case "cancelled":
         return "annulé";
       default:
+        if ((TENDER_STATUSES as readonly string[]).includes(status)) {
+          return status as TenderStatus;
+        }
         return "en cours d'étude";
     }
   };
