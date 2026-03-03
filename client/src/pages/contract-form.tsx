@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { useLocation, useParams } from "wouter"
@@ -102,6 +102,18 @@ export default function ContractForm() {
       })
     }
   }, [contract, isEditing, form])
+
+  const watchedHT = useWatch({ control: form.control, name: "contractAmount" })
+  const watchedTVA = useWatch({ control: form.control, name: "vatAmount" })
+
+  useEffect(() => {
+    const ht = parseFloat(watchedHT as string) || 0
+    const tva = parseFloat(watchedTVA as string) || 0
+    if (ht > 0 || tva > 0) {
+      const ttc = (ht + tva).toFixed(2)
+      form.setValue("totalAmount", ttc, { shouldValidate: false })
+    }
+  }, [watchedHT, watchedTVA, form])
 
   const createMutation = useMutation({
     mutationFn: (data: ContractFormData) => apiRequest("/api/contracts", "POST", data),
@@ -374,15 +386,15 @@ export default function ContractForm() {
                 name="totalAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Montant TTC</FormLabel>
+                    <FormLabel>Montant TTC <span className="text-xs text-muted-foreground">(calculé)</span></FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        min="0"
-                        step="0.01"
+                        readOnly
+                        tabIndex={-1}
                         placeholder="0.00"
-                        {...field}
                         value={field.value ?? ""}
+                        className="bg-muted cursor-not-allowed font-medium"
                         data-testid="input-total-amount"
                       />
                     </FormControl>
