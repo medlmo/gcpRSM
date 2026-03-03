@@ -73,10 +73,10 @@ export default function Dashboard() {
       testId: "stat-suppliers"
     },
     {
-      title: "Budget total",
+      title: "Total marchés",
       value: stats?.totalBudget 
-        ? `${(stats.totalBudget / 1000000).toFixed(1)}M MAD` 
-        : "0 MAD",
+        ? `${Number(stats.totalBudget).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD` 
+        : "0,00 MAD",
       icon: TrendingUp,
       color: "text-chart-2",
       bgColor: "bg-chart-2/10",
