@@ -18,6 +18,7 @@ import SupplierForm from "@/pages/supplier-form";
 import SupplierDetail from "@/pages/supplier-detail";
 import Bids from "@/pages/bids";
 import Contracts from "@/pages/contracts";
+import ContractForm from "@/pages/contract-form";
 import Execution from "@/pages/execution";
 import ServiceOrderForm from "@/pages/service-order-form";
 import AmendmentForm from "@/pages/amendment-form";
@@ -81,6 +82,12 @@ function Router() {
       </Route>
       <Route path="/contracts">
         {() => <ProtectedRoute component={Contracts} />}
+      </Route>
+      <Route path="/contracts/new">
+        {() => <ProtectedRoute component={ContractForm} />}
+      </Route>
+      <Route path="/contracts/:id/edit">
+        {() => <ProtectedRoute component={ContractForm} />}
       </Route>
       <Route path="/execution">
         {() => <ProtectedRoute component={Execution} />}

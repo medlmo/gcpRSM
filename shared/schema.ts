@@ -86,24 +86,28 @@ export const contracts = pgTable("contracts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   contractNumber: text("contract_number").notNull().unique(),
   tenderId: varchar("tender_id").notNull().references(() => tenders.id),
-  bidId: varchar("bid_id").notNull().references(() => bids.id),
+  bidId: varchar("bid_id").references(() => bids.id),
   supplierId: varchar("supplier_id").notNull().references(() => suppliers.id),
   title: text("title").notNull(),
   contractAmount: decimal("contract_amount", { precision: 15, scale: 2 }).notNull(),
+  vatAmount: decimal("vat_amount", { precision: 15, scale: 2 }),
+  totalAmount: decimal("total_amount", { precision: 15, scale: 2 }),
   currency: text("currency").notNull().default("MAD"),
-  signatureDate: timestamp("signature_date").notNull(),
-  startDate: timestamp("start_date").notNull(),
-  plannedEndDate: timestamp("planned_end_date").notNull(),
+  signatureDate: timestamp("signature_date"),
+  visaDate: timestamp("visa_date"),
+  startDate: timestamp("start_date"),
+  plannedEndDate: timestamp("planned_end_date"),
   actualEndDate: timestamp("actual_end_date"),
-  executionDelay: integer("execution_delay"), // in days
+  executionDelay: integer("execution_delay"),
+  guaranteeDelay: integer("guarantee_delay"),
   status: text("status").notNull().default("signed"), // signed, in_progress, suspended, completed, terminated
   guaranteeAmount: decimal("guarantee_amount", { precision: 15, scale: 2 }),
   guaranteeType: text("guarantee_type"), // cautionnement, retenue de garantie
   retentionPercentage: decimal("retention_percentage", { precision: 5, scale: 2 }).default("10"),
   advancePaymentPercentage: decimal("advance_payment_percentage", { precision: 5, scale: 2 }),
-  penaltyRatePerDay: decimal("penalty_rate_per_day", { precision: 5, scale: 4 }).default("0.001"), // 0.1% per day
+  penaltyRatePerDay: decimal("penalty_rate_per_day", { precision: 5, scale: 4 }).default("0.001"),
   accumulatedPenalties: decimal("accumulated_penalties", { precision: 15, scale: 2 }).default("0"),
-  pvDocumentUrl: text("pv_document_url"), // Procès-verbal d'adjudication
+  pvDocumentUrl: text("pv_document_url"),
   contractDocumentUrl: text("contract_document_url"),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -343,10 +347,17 @@ export const insertContractSchema = createInsertSchema(contracts).omit({
   updatedAt: true,
   accumulatedPenalties: true,
 }).extend({
-  signatureDate: z.string().or(z.date()),
-  startDate: z.string().or(z.date()),
-  plannedEndDate: z.string().or(z.date()),
-  actualEndDate: z.string().or(z.date()).optional(),
+  bidId: z.string().optional().nullable(),
+  signatureDate: z.string().or(z.date()).optional().nullable(),
+  visaDate: z.string().or(z.date()).optional().nullable(),
+  startDate: z.string().or(z.date()).optional().nullable(),
+  plannedEndDate: z.string().or(z.date()).optional().nullable(),
+  actualEndDate: z.string().or(z.date()).optional().nullable(),
+  vatAmount: z.string().optional().nullable(),
+  totalAmount: z.string().optional().nullable(),
+  executionDelay: z.coerce.number().int().min(0).optional().nullable(),
+  guaranteeDelay: z.coerce.number().int().min(0).optional().nullable(),
+  guaranteeAmount: z.string().optional().nullable(),
 });
 
 export const insertServiceOrderSchema = createInsertSchema(serviceOrders).omit({
