@@ -231,7 +231,7 @@ export default function TenderForm() {
                 name="reference"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Référence <span className="text-muted-foreground text-xs">(optionnel — générée automatiquement si vide)</span></FormLabel>
+                    <FormLabel>Référence *</FormLabel>
                     <FormControl>
                       <Input
                         {...field}

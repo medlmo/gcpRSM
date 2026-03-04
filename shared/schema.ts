@@ -319,7 +319,7 @@ export const insertTenderSchema = createInsertSchema(tenders).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  reference: z.string().optional().or(z.literal("")),
+  reference: z.string().min(1, "La référence de l'AO est requise"),
   submissionDeadline: z.string().or(z.date()),
   openingDate: z.string().or(z.date()).optional(),
   publicationDate: z.string().or(z.date()).optional(),

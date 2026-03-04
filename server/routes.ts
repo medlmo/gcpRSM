@@ -272,11 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const body = { ...req.body };
       if (!body.reference || body.reference.trim() === "") {
-        const now = new Date();
-        const yy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        body.reference = `AO-${yy}${mm}-${rand}`;
+        return res.status(400).json({ error: "La référence de l'AO est requise." });
       }
       const tenderData = insertTenderSchema.parse(body);
       const tender = await storage.createTender(tenderData);

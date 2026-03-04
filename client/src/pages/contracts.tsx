@@ -202,6 +202,17 @@ export default function Contracts() {
                             {contract.contractNumber}
                           </span>
                           {getContractTypeBadge((contract as any).contractType)}
+                          {(() => {
+                            const statusMap: Record<string, { label: string; variant: any }> = {
+                              signed: { label: "Signé", variant: "secondary" },
+                              in_progress: { label: "En cours d'exécution", variant: "default" },
+                              suspended: { label: "Suspendu", variant: "outline" },
+                              completed: { label: "Achevé", variant: "secondary" },
+                              terminated: { label: "Résilié", variant: "destructive" },
+                            }
+                            const s = statusMap[(contract as any).status]
+                            return s ? <Badge variant={s.variant} data-testid={`badge-status-${contract.id}`}>{s.label}</Badge> : null
+                          })()}
                         </div>
                         <p
                           className="text-muted-foreground text-sm mb-4"

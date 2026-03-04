@@ -34,6 +34,7 @@ const contractFormSchema = insertContractSchema.extend({
   supplierId: z.string().min(1, "Le fournisseur titulaire est requis"),
   contractAmount: z.string().min(1, "Montant HT requis"),
   contractNumber: z.string().min(1, "Le numéro du marché est requis"),
+  status: z.string().min(1, "Le statut est requis"),
 })
 
 type ContractFormData = z.infer<typeof contractFormSchema>
@@ -82,6 +83,7 @@ export default function ContractForm() {
       startDate: "",
       guaranteeAmount: "",
       contractType: null,
+      status: "signed",
     },
   })
 
@@ -102,6 +104,7 @@ export default function ContractForm() {
         startDate: formatDateInput(contract.startDate),
         guaranteeAmount: contract.guaranteeAmount ? String(contract.guaranteeAmount) : "",
         contractType: (contract.contractType as any) ?? null,
+        status: contract.status ?? "signed",
       })
     }
   }, [contract, isEditing, form])
@@ -305,6 +308,31 @@ export default function ContractForm() {
                         <SelectItem value="marché reconductible">Marché reconductible</SelectItem>
                         <SelectItem value="marché cadre">Marché cadre</SelectItem>
                         <SelectItem value="marché négocié">Marché négocié</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Statut *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-contract-status">
+                          <SelectValue placeholder="Sélectionner un statut" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="signed">Signé</SelectItem>
+                        <SelectItem value="in_progress">En cours d'exécution</SelectItem>
+                        <SelectItem value="suspended">Suspendu</SelectItem>
+                        <SelectItem value="completed">Achevé</SelectItem>
+                        <SelectItem value="terminated">Résilié</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
