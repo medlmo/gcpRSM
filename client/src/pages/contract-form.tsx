@@ -30,6 +30,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient"
 import { useToast } from "@/hooks/use-toast"
 
 const contractFormSchema = insertContractSchema.extend({
+  tenderId: z.string().min(1, "L'appel d'offres est requis"),
+  supplierId: z.string().min(1, "Le fournisseur titulaire est requis"),
   contractAmount: z.string().min(1, "Montant HT requis"),
 })
 
@@ -200,9 +202,9 @@ export default function ContractForm() {
                 name="contractNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Numéro du marché *</FormLabel>
+                    <FormLabel>Numéro du marché <span className="text-muted-foreground text-xs">(optionnel — généré automatiquement si vide)</span></FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: M-2026-001" {...field} data-testid="input-contract-number" />
+                      <Input placeholder="Ex: M-202503-0042" {...field} data-testid="input-contract-number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
