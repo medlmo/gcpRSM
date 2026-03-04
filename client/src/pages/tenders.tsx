@@ -1,12 +1,12 @@
-import { useState } from "react"
-import { useQuery, useMutation } from "@tanstack/react-query"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { 
-  Plus, 
-  Search, 
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Plus,
+  Search,
   Filter,
   FileText,
   Calendar,
@@ -15,17 +15,17 @@ import {
   Download,
   Eye,
   Edit,
-  Trash2
-} from "lucide-react"
-import { Link } from "wouter"
-import { Skeleton } from "@/components/ui/skeleton"
+  Trash2,
+} from "lucide-react";
+import { Link } from "wouter";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,120 +35,123 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { formatDistanceToNow } from "date-fns"
-import { fr } from "date-fns/locale"
-import { useToast } from "@/hooks/use-toast"
-import { apiRequest, queryClient } from "@/lib/queryClient"
-import type { Tender } from "@shared/schema"
+} from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Tender } from "@shared/schema";
 
 export default function Tenders() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [tenderToDelete, setTenderToDelete] = useState<Tender | null>(null)
-  const { toast } = useToast()
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tenderToDelete, setTenderToDelete] = useState<Tender | null>(null);
+  const { toast } = useToast();
 
   const { data: tenders, isLoading } = useQuery<Tender[]>({
     queryKey: ["/api/tenders"],
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (tenderId: string) => {
-      return apiRequest(`/api/tenders/${tenderId}`, 'DELETE')
+      return apiRequest(`/api/tenders/${tenderId}`, "DELETE");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tenders'] })
+      queryClient.invalidateQueries({ queryKey: ["/api/tenders"] });
       toast({
         title: "Succès",
         description: "L'appel d'offres a été supprimé avec succès.",
-      })
-      setDeleteDialogOpen(false)
-      setTenderToDelete(null)
+      });
+      setDeleteDialogOpen(false);
+      setTenderToDelete(null);
     },
     onError: (error: Error) => {
       toast({
         title: "Erreur",
         description: error.message,
         variant: "destructive",
-      })
+      });
     },
-  })
+  });
 
   const handleDeleteClick = (tender: Tender) => {
-    setTenderToDelete(tender)
-    setDeleteDialogOpen(true)
-  }
+    setTenderToDelete(tender);
+    setDeleteDialogOpen(true);
+  };
 
   const handleDeleteConfirm = () => {
     if (tenderToDelete) {
-      deleteMutation.mutate(tenderToDelete.id)
+      deleteMutation.mutate(tenderToDelete.id);
     }
-  }
+  };
 
   const normalizeStatus = (status: string) => {
     switch (status) {
       case "draft":
-        return "en cours d'étude"
+        return "en cours d'étude";
       case "published":
-        return "publié"
+        return "publié";
       case "closed":
-        return "en cours de jugement"
+        return "en cours de jugement";
       case "awarded":
-        return "attribué"
+        return "attribué";
       case "cancelled":
-        return "annulé"
+        return "annulé";
       default:
-        return status
+        return status;
     }
-  }
+  };
 
   const normalizeProcedureType = (procedureType: string) => {
     switch (procedureType) {
       case "AO ouvert":
-        return "Appel d'offres ouvert"
+        return "Appel d'offres ouvert";
       case "AO restreint":
-        return "Appel d'offres restreint"
+        return "Appel d'offres restreint";
       case "Négociée compétitive":
-        return "Appel d'offres ouvert simplifié"
+        return "Appel d'offres ouvert simplifié";
       case "Concours":
-        return "Concours architectural"
+        return "Concours architectural";
       case "Consultation":
-        return "Consultation architecturale"
+        return "Consultation architecturale";
       default:
-        return procedureType
+        return procedureType;
     }
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: any; label: string }> = {
       "en cours d'étude": { variant: "secondary", label: "En cours d'étude" },
-      "publié": { variant: "default", label: "Publié" },
-      "en cours de jugement": { variant: "outline", label: "En cours de jugement" },
-      "attribué": { variant: "default", label: "Attribué" },
-      "annulé": { variant: "destructive", label: "Annulé" },
+      publié: { variant: "default", label: "Publié" },
+      "en cours de jugement": {
+        variant: "outline",
+        label: "En cours de jugement",
+      },
+      attribué: { variant: "default", label: "Attribué" },
+      annulé: { variant: "destructive", label: "Annulé" },
       draft: { variant: "secondary", label: "Brouillon" },
       published: { variant: "default", label: "Publié" },
       closed: { variant: "outline", label: "Clôturé" },
       awarded: { variant: "default", label: "Attribué" },
       cancelled: { variant: "destructive", label: "Annulé" },
-    }
-    const config = statusConfig[status] || statusConfig["en cours d'étude"]
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
+    };
+    const config = statusConfig[status] || statusConfig["en cours d'étude"];
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       travaux: "Travaux",
       fournitures: "Fournitures",
       services: "Services",
-    }
-    return labels[category] || category
-  }
+    };
+    return labels[category] || category;
+  };
 
   const getProcedureLabel = (procedure: string) => {
-    const normalized = normalizeProcedureType(procedure)
+    const normalized = normalizeProcedureType(procedure);
     const labels: Record<string, string> = {
       "Appel d'offres ouvert": "Appel d'offres ouvert",
       "Appel d'offres ouvert simplifié": "AO ouvert simplifié",
@@ -156,22 +159,40 @@ export default function Tenders() {
       "Concours architectural": "Concours architectural",
       "Consultation architecturale": "Consultation architecturale",
       "Appel à manifestation d'intérêt": "Appel à manifestation d'intérêt",
-    }
-    return labels[normalized] || normalized
-  }
+    };
+    return labels[normalized] || normalized;
+  };
 
-  const filteredTenders = tenders?.filter(tender => {
-    const normalizedStatus = normalizeStatus(tender.status)
-    const matchesSearch = 
-      tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tender.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      normalizeProcedureType(tender.procedureType).toLowerCase().includes(searchQuery.toLowerCase())
+  const hasActiveFilters =
+    searchQuery !== "" || statusFilter !== "all" || categoryFilter !== "all";
 
-    const matchesStatus = statusFilter === "all" || normalizedStatus === statusFilter
-    const matchesCategory = categoryFilter === "all" || tender.category === categoryFilter
-    
-    return matchesSearch && matchesStatus && matchesCategory
-  })
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+  };
+
+  const filteredTenders = tenders?.filter((tender) => {
+    const normalizedStatus = normalizeStatus(tender.status);
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      !q ||
+      tender.title.toLowerCase().includes(q) ||
+      tender.reference.toLowerCase().includes(q) ||
+      tender.procedureType.toLowerCase().includes(q) ||
+      normalizeProcedureType(tender.procedureType).toLowerCase().includes(q) ||
+      (tender.description ?? "").toLowerCase().includes(q) ||
+      (tender.openingLocation ?? "").toLowerCase().includes(q) ||
+      (tender.executionLocation ?? "").toLowerCase().includes(q) ||
+      tender.category.toLowerCase().includes(q);
+
+    const matchesStatus =
+      statusFilter === "all" || normalizedStatus === statusFilter;
+    const matchesCategory =
+      categoryFilter === "all" || tender.category === categoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   return (
     <div className="space-y-6">
@@ -211,9 +232,9 @@ export default function Tenders() {
                 data-testid="input-search"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40" data-testid="select-status">
+                <SelectTrigger className="w-44" data-testid="select-status">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
@@ -237,8 +258,24 @@ export default function Tenders() {
                   <SelectItem value="services">Services</SelectItem>
                 </SelectContent>
               </Select>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-muted-foreground"
+                  data-testid="button-reset-filters"
+                >
+                  Effacer les filtres
+                </Button>
+              )}
             </div>
           </div>
+          {!isLoading && tenders && (
+            <p className="text-sm text-muted-foreground mt-1" data-testid="text-results-count">
+              {filteredTenders?.length ?? 0} résultat{(filteredTenders?.length ?? 0) !== 1 ? "s" : ""} sur {tenders.length} appel{tenders.length !== 1 ? "s" : ""} d'offres
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -267,8 +304,8 @@ export default function Tenders() {
           ) : filteredTenders && filteredTenders.length > 0 ? (
             <div className="space-y-4" data-testid="tenders-list">
               {filteredTenders.map((tender) => (
-                <Card 
-                  key={tender.id} 
+                <Card
+                  key={tender.id}
                   className="hover-elevate"
                   data-testid={`tender-card-${tender.id}`}
                 >
@@ -282,7 +319,9 @@ export default function Tenders() {
                           {getStatusBadge(normalizeStatus(tender.status))}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="font-medium">{tender.reference}</span>
+                          <span className="font-medium">
+                            {tender.reference}
+                          </span>
                           <span>•</span>
                           <span>{getCategoryLabel(tender.category)}</span>
                           <span>•</span>
@@ -291,8 +330,8 @@ export default function Tenders() {
                       </div>
                       <div className="flex gap-1">
                         <Link href={`/tenders/${tender.id}`}>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             data-testid={`button-view-${tender.id}`}
                           >
@@ -300,16 +339,16 @@ export default function Tenders() {
                           </Button>
                         </Link>
                         <Link href={`/tenders/${tender.id}/edit`}>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             data-testid={`button-edit-${tender.id}`}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteClick(tender)}
                           data-testid={`button-delete-${tender.id}`}
@@ -324,42 +363,56 @@ export default function Tenders() {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-muted-foreground">Date & heure limite</p>
+                          <p className="text-muted-foreground">
+                            Date & heure limite
+                          </p>
                           <p className="font-medium">
                             {tender.submissionDeadline ? (
                               <>
-                                {new Date(tender.submissionDeadline).toLocaleString('fr-FR', {
+                                {new Date(
+                                  tender.submissionDeadline,
+                                ).toLocaleString("fr-FR", {
                                   dateStyle: "long",
                                   timeStyle: "short",
                                 })}
                                 <span className="text-xs text-muted-foreground ml-2">
-                                  ({formatDistanceToNow(new Date(tender.submissionDeadline), {
-                                    addSuffix: true,
-                                    locale: fr,
-                                  })})
+                                  (
+                                  {formatDistanceToNow(
+                                    new Date(tender.submissionDeadline),
+                                    {
+                                      addSuffix: true,
+                                      locale: fr,
+                                    },
+                                  )}
+                                  )
                                 </span>
                               </>
-                            ) : "Non définie"}
+                            ) : (
+                              "Non définie"
+                            )}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-muted-foreground">Budget estimatif</p>
+                          <p className="text-muted-foreground">Estimation</p>
                           <p className="font-medium">
-                            {tender.estimatedBudget 
-                              ? `${Number(tender.estimatedBudget).toLocaleString('fr-FR')} ${tender.currency}`
-                              : "Non communiqué"
-                            }
+                            {tender.estimatedBudget
+                              ? `${Number(tender.estimatedBudget).toLocaleString("fr-FR")} ${tender.currency}`
+                              : "Non communiqué"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Layers className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-muted-foreground">Nombre de lots</p>
-                          <p className="font-medium">{tender.lotsNumber ?? "Non défini"}</p>
+                          <p className="text-muted-foreground">
+                            Nombre de lots
+                          </p>
+                          <p className="font-medium">
+                            {tender.lotsNumber ?? "Non défini"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -378,21 +431,26 @@ export default function Tenders() {
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Aucun appel d'offres trouvé</h3>
+              <h3 className="text-lg font-medium mb-2">
+                Aucun appel d'offres trouvé
+              </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                {searchQuery || statusFilter !== "all" || categoryFilter !== "all"
+                {searchQuery ||
+                statusFilter !== "all" ||
+                categoryFilter !== "all"
                   ? "Essayez de modifier vos filtres de recherche"
-                  : "Commencez par créer votre premier appel d'offres"
-                }
+                  : "Commencez par créer votre premier appel d'offres"}
               </p>
-              {!searchQuery && statusFilter === "all" && categoryFilter === "all" && (
-                <Link href="/tenders/new">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un appel d'offres
-                  </Button>
-                </Link>
-              )}
+              {!searchQuery &&
+                statusFilter === "all" &&
+                categoryFilter === "all" && (
+                  <Link href="/tenders/new">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Créer un appel d'offres
+                    </Button>
+                  </Link>
+                )}
             </div>
           )}
         </CardContent>
@@ -403,8 +461,8 @@ export default function Tenders() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer l'appel d'offres "{tenderToDelete?.title}" ?
-              Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer l'appel d'offres "
+              {tenderToDelete?.title}" ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -420,5 +478,5 @@ export default function Tenders() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }
