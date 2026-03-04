@@ -270,7 +270,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tenders", requireResourcePermission("tender", "add"), async (req, res) => {
     try {
-      const tenderData = insertTenderSchema.parse(req.body);
+      const body = { ...req.body };
+      if (!body.reference || body.reference.trim() === "") {
+        const now = new Date();
+        const yy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        body.reference = `AO-${yy}${mm}-${rand}`;
+      }
+      const tenderData = insertTenderSchema.parse(body);
       const tender = await storage.createTender(tenderData);
       res.status(201).json(tender);
     } catch (error: any) {

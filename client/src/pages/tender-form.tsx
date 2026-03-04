@@ -231,9 +231,14 @@ export default function TenderForm() {
                 name="reference"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Référence *</FormLabel>
+                    <FormLabel>Référence <span className="text-muted-foreground text-xs">(optionnel — générée automatiquement si vide)</span></FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-reference" />
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        placeholder="Ex : AO-202503-0042"
+                        data-testid="input-reference"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
