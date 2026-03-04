@@ -30,9 +30,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient"
 import { useToast } from "@/hooks/use-toast"
 
 const contractFormSchema = insertContractSchema.extend({
-  tenderId: z.string().min(1, "L'appel d'offres est requis"),
+  tenderId: z.string().optional().nullable(),
   supplierId: z.string().min(1, "Le fournisseur titulaire est requis"),
   contractAmount: z.string().min(1, "Montant HT requis"),
+  contractNumber: z.string().min(1, "Le numéro du marché est requis"),
 })
 
 type ContractFormData = z.infer<typeof contractFormSchema>
@@ -202,9 +203,9 @@ export default function ContractForm() {
                 name="contractNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Numéro du marché <span className="text-muted-foreground text-xs">(optionnel — généré automatiquement si vide)</span></FormLabel>
+                    <FormLabel>Numéro du marché *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: M-202503-0042" {...field} data-testid="input-contract-number" />
+                      <Input placeholder="Ex: M-2026-001" {...field} data-testid="input-contract-number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -230,18 +231,19 @@ export default function ContractForm() {
                 name="tenderId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Référence AO *</FormLabel>
+                    <FormLabel>Référence AO <span className="text-muted-foreground text-xs">(optionnel)</span></FormLabel>
                     <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                      onValueChange={(v) => field.onChange(v === "__none__" ? null : v)}
                       disabled={tendersLoading}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-tender">
-                          <SelectValue placeholder={tendersLoading ? "Chargement..." : "Sélectionner un AO"} />
+                          <SelectValue placeholder={tendersLoading ? "Chargement..." : "Aucun AO lié"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="__none__">— Aucun AO lié —</SelectItem>
                         {tenders?.map((tender) => (
                           <SelectItem key={tender.id} value={tender.id}>
                             {tender.reference} — {tender.title}

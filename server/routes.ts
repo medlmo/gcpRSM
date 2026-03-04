@@ -402,18 +402,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contracts", requireResourcePermission("contract", "add"), async (req, res) => {
     try {
       const body = { ...req.body };
-      if (!body.tenderId || body.tenderId.trim() === "") {
-        return res.status(400).json({ error: "L'appel d'offres (N° AO) est requis." });
+      if (!body.contractNumber || body.contractNumber.trim() === "") {
+        return res.status(400).json({ error: "Le numéro du marché est requis." });
       }
       if (!body.supplierId || body.supplierId.trim() === "") {
         return res.status(400).json({ error: "Le fournisseur (titulaire) est requis." });
       }
-      if (!body.contractNumber || body.contractNumber.trim() === "") {
-        const now = new Date();
-        const yy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        body.contractNumber = `M-${yy}${mm}-${rand}`;
+      if (!body.tenderId || body.tenderId.trim() === "") {
+        body.tenderId = null;
       }
       const contractData = insertContractSchema.parse(body);
       const contract = await storage.createContract(contractData);

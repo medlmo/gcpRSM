@@ -85,7 +85,7 @@ export const bids = pgTable("bids", {
 export const contracts = pgTable("contracts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   contractNumber: text("contract_number").notNull().unique(),
-  tenderId: varchar("tender_id").notNull().references(() => tenders.id),
+  tenderId: varchar("tender_id").references(() => tenders.id),
   bidId: varchar("bid_id").references(() => bids.id),
   supplierId: varchar("supplier_id").notNull().references(() => suppliers.id),
   title: text("title").notNull(),

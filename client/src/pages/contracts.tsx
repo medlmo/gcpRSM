@@ -70,9 +70,10 @@ export default function Contracts() {
     },
   })
 
-  const getTenderReference = (tenderId: string) => {
+  const getTenderReference = (tenderId: string | null | undefined) => {
+    if (!tenderId) return "-"
     const tender = tenders?.find((t) => t.id === tenderId)
-    return tender ? `${tender.reference}` : "—"
+    return tender ? tender.reference : "-"
   }
 
   const getSupplierName = (supplierId: string) => {
