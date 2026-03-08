@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Edit, Trash2, FileText, Calendar, DollarSign, MapPin, Layers } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, FileText, Calendar, DollarSign, MapPin, Layers, FileArchive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -216,6 +216,14 @@ export default function TenderDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          {tender.documentUrl && (
+            <a href={tender.documentUrl} download target="_blank" rel="noreferrer">
+              <Button variant="outline" data-testid="button-download-dossier">
+                <FileArchive className="w-4 h-4 mr-2" />
+                Télécharger le dossier
+              </Button>
+            </a>
+          )}
           <Button
             variant="outline"
             onClick={() => navigate(`/tenders/${tenderId}/edit`)}
