@@ -16,6 +16,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  FileArchive,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -329,6 +330,17 @@ export default function Tenders() {
                         </div>
                       </div>
                       <div className="flex gap-1">
+                        {tender.documentUrl && (
+                          <a href={tender.documentUrl} target="_blank" rel="noreferrer" title="Télécharger le dossier">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              data-testid={`button-download-${tender.id}`}
+                            >
+                              <FileArchive className="h-4 w-4 text-primary" />
+                            </Button>
+                          </a>
+                        )}
                         <Link href={`/tenders/${tender.id}`}>
                           <Button
                             variant="ghost"

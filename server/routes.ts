@@ -15,6 +15,30 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { requireRole, requireResourcePermission } from "./permissions";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const multerStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e6);
+    cb(null, unique + path.extname(file.originalname).toLowerCase());
+  },
+});
+
+const uploadMiddleware = multer({
+  storage: multerStorage,
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if ([".zip", ".rar"].includes(ext)) cb(null, true);
+    else cb(new Error("Seuls les fichiers .zip et .rar sont acceptés."));
+  },
+  limits: { fileSize: 100 * 1024 * 1024 },
+});
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -52,6 +76,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return next();
     }
     return requireAuth(req, res, next);
+  });
+
+  // File upload endpoint (dossier AO)
+  app.post("/api/upload/dossier", uploadMiddleware.single("file"), (req: Request, res: Response) => {
+    if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu." });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url, originalName: req.file.originalname, size: req.file.size });
   });
 
   // Auth routes
