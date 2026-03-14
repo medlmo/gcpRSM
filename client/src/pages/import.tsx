@@ -62,7 +62,7 @@ function formatDate(d: string | null): string {
 
 export default function ImportPage() {
   const { toast } = useToast();
-  const [buyerFilter, setBuyerFilter] = useState("SOUSS-MASSA");
+  const [buyerFilter, setBuyerFilter] = useState("SOUS-MASSA");
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const previewMutation = useMutation({
