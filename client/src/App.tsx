@@ -27,7 +27,6 @@ import Reports from "@/pages/reports";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import LoginPage from "@/pages/login";
-import ImportPage from "@/pages/import";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -104,9 +103,6 @@ function Router() {
       </Route>
       <Route path="/reports">
         {() => <ProtectedRoute component={Reports} />}
-      </Route>
-      <Route path="/import">
-        {() => <ProtectedRoute component={ImportPage} />}
       </Route>
       <Route path="/users">
         {() => <ProtectedRoute component={Users} />}

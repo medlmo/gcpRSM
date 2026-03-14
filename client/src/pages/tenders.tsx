@@ -4,6 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Plus,
   Search,
@@ -17,6 +26,13 @@ import {
   Edit,
   Trash2,
   FileArchive,
+  Globe,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,13 +59,89 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Tender } from "@shared/schema";
 
+interface ScrapedTender {
+  refConsultation: string;
+  orgAcronyme: string;
+  reference: string;
+  title: string;
+  procedureType: string;
+  category: string;
+  publicationDate: string | null;
+  submissionDeadline: string | null;
+  buyer: string;
+  executionLocation: string | null;
+  portalUrl: string;
+}
+
+interface ImportResult {
+  tenders: ScrapedTender[];
+  totalFound: number;
+  filtered: number;
+  imported: number;
+  skipped: number;
+  errors: string[];
+  importedRefs: string[];
+  dryRun?: boolean;
+}
+
+function formatPortalDate(d: string | null): string {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+function categoryColor(cat: string) {
+  const map: Record<string, string> = {
+    travaux: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+    fournitures: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    services: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  };
+  return map[cat] ?? "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+}
+
 export default function Tenders() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenderToDelete, setTenderToDelete] = useState<Tender | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [buyerFilter, setBuyerFilter] = useState("REGION DE SOUS-MASSA");
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const { toast } = useToast();
+
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/import/marchespublics", { buyerFilter, dryRun: true });
+      return res.json() as Promise<ImportResult>;
+    },
+    onSuccess: (data) => {
+      setImportResult({ ...data, dryRun: true });
+      if (data.filtered === 0) {
+        toast({ title: "Aucun résultat", description: `Aucun AO trouvé pour "${buyerFilter}".`, variant: "destructive" });
+      } else {
+        toast({ title: "Prévisualisation", description: `${data.filtered} AO trouvé(s) sur ${data.totalFound} consultations récentes.` });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erreur de connexion", description: err.message || "Impossible de contacter le portail.", variant: "destructive" });
+    },
+  });
+
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/import/marchespublics", { buyerFilter, dryRun: false });
+      return res.json() as Promise<ImportResult>;
+    },
+    onSuccess: (data) => {
+      setImportResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/tenders"] });
+      toast({ title: "Import terminé", description: `${data.imported} AO importé(s), ${data.skipped} ignoré(s).` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erreur d'import", description: err.message || "Erreur lors de l'import.", variant: "destructive" });
+    },
+  });
 
   const { data: tenders, isLoading } = useQuery<Tender[]>({
     queryKey: ["/api/tenders"],
@@ -207,8 +299,8 @@ export default function Tenders() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" data-testid="button-import">
-            <Download className="mr-2 h-4 w-4" />
+          <Button variant="outline" data-testid="button-import" onClick={() => { setImportResult(null); setImportDialogOpen(true); }}>
+            <Globe className="mr-2 h-4 w-4" />
             Importer depuis marchespublics.gov.ma
           </Button>
           <Link href="/tenders/new">
@@ -467,6 +559,150 @@ export default function Tenders() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Modal import portail ─────────────────────────────────────────── */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Importer depuis marchespublics.gov.ma
+            </DialogTitle>
+            <DialogDescription>
+              Le portail est interrogé en temps réel. Prévisualisez avant d'importer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="import-buyer">Acheteur public (correspondance exacte)</Label>
+              <Input
+                id="import-buyer"
+                data-testid="input-buyer-filter"
+                value={buyerFilter}
+                onChange={(e) => setBuyerFilter(e.target.value)}
+                disabled={previewMutation.isPending || importMutation.isPending}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => previewMutation.mutate()}
+                disabled={previewMutation.isPending || importMutation.isPending || !buyerFilter.trim()}
+                data-testid="button-preview"
+              >
+                {previewMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                Prévisualiser
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => importMutation.mutate()}
+                disabled={previewMutation.isPending || importMutation.isPending || !buyerFilter.trim()}
+                data-testid="button-import-confirm"
+              >
+                {importMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                Importer
+              </Button>
+            </div>
+
+            {(previewMutation.isPending || importMutation.isPending) && (
+              <Alert>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <AlertDescription>Connexion au portail en cours… (10–30 secondes)</AlertDescription>
+              </Alert>
+            )}
+
+            {importResult && (
+              <>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { label: "Consultations récentes", value: importResult.totalFound, color: "" },
+                    { label: `Trouvés (${buyerFilter.split(" ").pop()})`, value: importResult.filtered, color: "text-primary" },
+                    { label: "Importés", value: importResult.dryRun ? "—" : importResult.imported, color: "text-green-600" },
+                    { label: "Doublons", value: importResult.dryRun ? "—" : importResult.skipped, color: "text-yellow-600" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-lg border p-3">
+                      <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                      <div className="text-xs text-muted-foreground">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {importResult.errors?.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <ul className="list-disc list-inside text-sm space-y-0.5">
+                        {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {importResult.tenders.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50 border-b">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">Référence</th>
+                          <th className="text-left px-3 py-2 font-medium">Objet</th>
+                          <th className="text-left px-3 py-2 font-medium">Catégorie</th>
+                          <th className="text-left px-3 py-2 font-medium">Date limite</th>
+                          <th className="text-left px-3 py-2 font-medium">Statut</th>
+                          <th className="px-3 py-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.tenders.map((t) => {
+                          const wasImported = importResult.importedRefs?.includes(t.reference);
+                          return (
+                            <tr key={t.refConsultation} className="border-b last:border-0 hover:bg-muted/30" data-testid={`row-import-${t.refConsultation}`}>
+                              <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{t.reference}</td>
+                              <td className="px-3 py-2 max-w-[240px]">
+                                <div className="line-clamp-2">{t.title}</div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${categoryColor(t.category)}`}>
+                                  {t.category}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-muted-foreground text-xs">{formatPortalDate(t.submissionDeadline)}</td>
+                              <td className="px-3 py-2">
+                                {importResult.dryRun ? (
+                                  <span className="text-xs text-muted-foreground">À importer</span>
+                                ) : wasImported ? (
+                                  <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Importé
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-yellow-600 text-xs font-medium">
+                                    <XCircle className="h-3.5 w-3.5" /> Doublon
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">
+                                <a href={t.portalUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary" data-testid={`link-portal-${t.refConsultation}`}>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground text-sm py-6">
+                    Aucun AO trouvé pour <strong>{buyerFilter}</strong> dans les consultations récentes.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
