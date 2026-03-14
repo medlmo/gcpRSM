@@ -184,10 +184,10 @@ export async function scrapePortalTenders(buyerFilter: string): Promise<{
   // Step 3: Parse all tenders
   const allTenders = parseTenders(bigPageHtml);
 
-  // Step 4: Filter by buyer name
-  const filterUpper = buyerFilter.toUpperCase();
+  // Step 4: Filter by buyer name (exact match)
+  const filterUpper = buyerFilter.toUpperCase().trim();
   const filtered = allTenders.filter(t =>
-    t.buyer.toUpperCase().includes(filterUpper)
+    t.buyer.toUpperCase().trim() === filterUpper
   );
 
   return {

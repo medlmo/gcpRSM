@@ -164,7 +164,7 @@ export default function ImportPage() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
-              Le nom de l'acheteur sera recherché dans les 500 consultations récentes du portail.
+              Le nom de l'acheteur doit correspondre exactement à la valeur affichée sur le portail (insensible à la casse).
             </p>
           </div>
 
