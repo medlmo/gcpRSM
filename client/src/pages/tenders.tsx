@@ -112,7 +112,7 @@ export default function Tenders() {
 
   const previewMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/import/marchespublics", { buyerFilter, dryRun: true });
+      const res = await apiRequest("/api/import/marchespublics", "POST", { buyerFilter, dryRun: true });
       return res.json() as Promise<ImportResult>;
     },
     onSuccess: (data) => {
@@ -130,7 +130,7 @@ export default function Tenders() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/import/marchespublics", { buyerFilter, dryRun: false });
+      const res = await apiRequest("/api/import/marchespublics", "POST", { buyerFilter, dryRun: false });
       return res.json() as Promise<ImportResult>;
     },
     onSuccess: (data) => {
