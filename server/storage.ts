@@ -63,6 +63,7 @@ export interface IStorage {
 
   // Tenders
   getTender(id: string): Promise<Tender | undefined>;
+  getTenderByReference(reference: string): Promise<Tender | undefined>;
   getAllTenders(): Promise<Tender[]>;
   getTendersByStatus(status: string): Promise<Tender[]>;
   createTender(tender: InsertTender): Promise<Tender>;
@@ -185,6 +186,11 @@ export class DatabaseStorage implements IStorage {
   // Tenders
   async getTender(id: string): Promise<Tender | undefined> {
     const [tender] = await db.select().from(tenders).where(eq(tenders.id, id));
+    return tender || undefined;
+  }
+
+  async getTenderByReference(reference: string): Promise<Tender | undefined> {
+    const [tender] = await db.select().from(tenders).where(eq(tenders.reference, reference));
     return tender || undefined;
   }
 

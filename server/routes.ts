@@ -18,6 +18,7 @@ import { requireRole, requireResourcePermission } from "./permissions";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { scrapePortalTenders } from "./scraper";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -688,6 +689,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── IMPORT depuis marchespublics.gov.ma ──────────────────────────────────
+  app.post("/api/import/marchespublics", requireAuth, async (req, res) => {
+    try {
+      const { buyerFilter = "SOUSS-MASSA", dryRun = false } = req.body as {
+        buyerFilter?: string;
+        dryRun?: boolean;
+      };
+
+      const { tenders, totalFound, filtered } = await scrapePortalTenders(buyerFilter);
+
+      if (dryRun) {
+        return res.json({ tenders, totalFound, filtered, imported: 0, skipped: 0, dryRun: true });
+      }
+
+      let imported = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+      const importedRefs: string[] = [];
+
+      for (const t of tenders) {
+        try {
+          // Deduplicate by reference
+          const existing = await storage.getTenderByReference(t.reference);
+          if (existing) {
+            skipped++;
+            continue;
+          }
+
+          const deadlineDate = t.submissionDeadline
+            ? new Date(t.submissionDeadline)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+          await storage.createTender({
+            reference: t.reference,
+            title: t.title,
+            description: t.title,
+            procedureType: t.procedureType,
+            category: t.category,
+            publicationDate: t.publicationDate ? new Date(t.publicationDate) : undefined,
+            submissionDeadline: deadlineDate,
+            status: "publié",
+            importedFrom: "marchespublics.gov.ma",
+            executionLocation: t.executionLocation ?? undefined,
+            documentUrl: t.portalUrl,
+            estimatedBudget: undefined,
+            currency: "MAD",
+            openingDate: undefined,
+            technicalCriteria: undefined,
+            financialCriteria: undefined,
+            createdBy: req.session.userId!,
+            lotsNumber: undefined,
+            provisionalGuaranteeAmount: undefined,
+            openingLocation: undefined,
+          });
+
+          imported++;
+          importedRefs.push(t.reference);
+        } catch (err: any) {
+          errors.push(`${t.reference}: ${err.message}`);
+        }
+      }
+
+      res.json({ tenders, totalFound, filtered, imported, skipped, errors, importedRefs });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Erreur lors du scraping du portail" });
+    }
+  });
+
+  // Preview only – no import
+  app.get("/api/import/marchespublics/preview", requireAuth, async (req, res) => {
+    try {
+      const buyerFilter = (req.query.buyerFilter as string) || "SOUSS-MASSA";
+      const result = await scrapePortalTenders(buyerFilter);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Erreur lors du scraping du portail" });
     }
   });
 

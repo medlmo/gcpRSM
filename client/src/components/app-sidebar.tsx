@@ -8,7 +8,8 @@ import {
   Settings,
   Building2,
   FolderKanban,
-  LogOut
+  LogOut,
+  Globe
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 import { useAuth } from "@/hooks/use-auth"
@@ -70,6 +71,12 @@ const menuItems = [
     url: "/reports",
     icon: FileBarChart,
     testId: "nav-reports"
+  },
+  {
+    title: "Import portail",
+    url: "/import",
+    icon: Globe,
+    testId: "nav-import"
   },
 ]
 
