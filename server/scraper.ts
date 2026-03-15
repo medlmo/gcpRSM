@@ -130,15 +130,19 @@ export function parseTenders(html: string): ScrapedTender[] {
     const referenceEl = row.find("span.ref");
     const reference = referenceEl.first().text().trim();
 
-    // Title/Object
-    const objDiv = row.find("[id*='panelBlocObjet']");
-    let title = objDiv.text().replace(/\s+/g, " ").trim();
-    // Remove "Objet :" prefix
-    title = title.replace(/^Objet\s*:\s*/i, "").replace(/\.\.\.$/, "").trim();
+    // Title/Object — clone and strip hidden tooltip divs before extracting text
+    const objDiv = row.find("[id*='panelBlocObjet']").first();
+    const objClone = objDiv.clone();
+    objClone.find(".info-bulle, .info-suite, [class*='info-bulle']").remove();
+    let title = objClone.text().replace(/\s+/g, " ").trim();
+    // Remove "Objet :" prefix and trailing ellipsis
+    title = title.replace(/^Objet\s*:\s*/i, "").replace(/\.{2,}$/g, "").trim();
 
-    // Buyer
-    const buyerDiv = row.find("[id*='panelBlocDenomination']");
-    let buyer = buyerDiv.text().replace(/\s+/g, " ").trim();
+    // Buyer — strip tooltips before extracting text
+    const buyerDiv = row.find("[id*='panelBlocDenomination']").first();
+    const buyerClone = buyerDiv.clone();
+    buyerClone.find(".info-bulle, .info-suite, [class*='info-bulle']").remove();
+    let buyer = buyerClone.text().replace(/\s+/g, " ").trim();
     buyer = buyer.replace(/^Acheteur public\s*:\s*/i, "").trim();
 
     // Deadline
