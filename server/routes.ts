@@ -736,14 +736,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             importedFrom: "marchespublics.gov.ma",
             executionLocation: t.executionLocation ?? undefined,
             documentUrl: t.portalUrl,
-            estimatedBudget: undefined,
+            estimatedBudget: t.estimatedBudget ?? undefined,
             currency: "MAD",
             openingDate: undefined,
             technicalCriteria: undefined,
             financialCriteria: undefined,
             createdBy: req.session.userId!,
             lotsNumber: undefined,
-            provisionalGuaranteeAmount: undefined,
+            provisionalGuaranteeAmount: t.provisionalGuaranteeAmount ?? undefined,
             openingLocation: undefined,
           });
 

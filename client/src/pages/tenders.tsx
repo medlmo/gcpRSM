@@ -71,6 +71,8 @@ interface ScrapedTender {
   buyer: string;
   executionLocation: string | null;
   portalUrl: string;
+  estimatedBudget: string | null;
+  provisionalGuaranteeAmount: string | null;
 }
 
 interface ImportResult {
@@ -562,7 +564,7 @@ export default function Tenders() {
 
       {/* ── Modal import portail ─────────────────────────────────────────── */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
@@ -649,6 +651,8 @@ export default function Tenders() {
                           <th className="text-left px-3 py-2 font-medium">Référence</th>
                           <th className="text-left px-3 py-2 font-medium">Objet</th>
                           <th className="text-left px-3 py-2 font-medium">Catégorie</th>
+                          <th className="text-right px-3 py-2 font-medium">Estimation (MAD)</th>
+                          <th className="text-right px-3 py-2 font-medium">Caution (MAD)</th>
                           <th className="text-left px-3 py-2 font-medium">Date limite</th>
                           <th className="text-left px-3 py-2 font-medium">Statut</th>
                           <th className="px-3 py-2"></th>
@@ -667,6 +671,16 @@ export default function Tenders() {
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${categoryColor(t.category)}`}>
                                   {t.category}
                                 </span>
+                              </td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap text-xs">
+                                {t.estimatedBudget
+                                  ? Number(t.estimatedBudget).toLocaleString("fr-FR", { minimumFractionDigits: 2 })
+                                  : <span className="text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap text-xs">
+                                {t.provisionalGuaranteeAmount
+                                  ? Number(t.provisionalGuaranteeAmount).toLocaleString("fr-FR", { minimumFractionDigits: 2 })
+                                  : <span className="text-muted-foreground">—</span>}
                               </td>
                               <td className="px-3 py-2 whitespace-nowrap text-muted-foreground text-xs">{formatPortalDate(t.submissionDeadline)}</td>
                               <td className="px-3 py-2">

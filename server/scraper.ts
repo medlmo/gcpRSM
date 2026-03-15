@@ -21,11 +21,12 @@ export interface ScrapedTender {
   buyer: string;
   executionLocation: string | null;
   portalUrl: string;
+  estimatedBudget: string | null;
+  provisionalGuaranteeAmount: string | null;
 }
 
 function parseDate(dateStr: string): string | null {
   if (!dateStr) return null;
-  // Format: DD/MM/YYYY
   const match = dateStr.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!match) return null;
   const [, day, month, year] = match;
@@ -48,6 +49,18 @@ function mapCategory(raw: string): string {
   if (r.includes("fournitures") || r.includes("fourniture")) return "fournitures";
   if (r.includes("services") || r.includes("service")) return "services";
   return raw.trim() || "services";
+}
+
+/** Parse a MAD amount string like "379 104,00" or "7 000,00 MAD" to decimal string */
+function parseMADAmount(text: string): string | null {
+  const cleaned = text
+    .replace(/\s/g, "")
+    .replace(/MAD.*$/i, "")
+    .replace(",", ".")
+    .trim();
+  const num = parseFloat(cleaned);
+  if (isNaN(num) || num === 0) return null;
+  return num.toFixed(2);
 }
 
 async function fetchPageHtml(cookies: string, pradoState: string, pageSize: number): Promise<string> {
@@ -97,23 +110,55 @@ async function getInitialPage(): Promise<{ html: string; cookies: string; pradoS
   return { html, cookies, pradoState };
 }
 
+/** Fetch the detail page for a consultation and extract financial fields */
+async function fetchTenderDetail(
+  refConsultation: string,
+  orgAcronyme: string
+): Promise<{ estimatedBudget: string | null; provisionalGuaranteeAmount: string | null }> {
+  const url = `${PORTAL_BASE}/index.php?page=entreprise.EntrepriseDetailsConsultation&refConsultation=${refConsultation}&orgAcronyme=${orgAcronyme}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: HEADERS,
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (!response.ok) return { estimatedBudget: null, provisionalGuaranteeAmount: null };
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    // Estimation (en Dhs TTC) — span with class content-bloc near labelReferentielZoneText
+    const estSpan = $("span[id*='labelReferentielZoneText'].content-bloc").first();
+    const estimatedBudget = estSpan.length
+      ? parseMADAmount(estSpan.text())
+      : null;
+
+    // Montant caution provisoire — span with id cautionProvisoire
+    const cautionSpan = $("span[id*='cautionProvisoire']").first();
+    const provisionalGuaranteeAmount = cautionSpan.length
+      ? parseMADAmount(cautionSpan.text())
+      : null;
+
+    return { estimatedBudget, provisionalGuaranteeAmount };
+  } catch {
+    return { estimatedBudget: null, provisionalGuaranteeAmount: null };
+  }
+}
+
 export function parseTenders(html: string): ScrapedTender[] {
   const $ = cheerio.load(html);
   const tenders: ScrapedTender[] = [];
 
-  // Each data row has hidden inputs for refCons and orgCons
   $("input[id*='_refCons']").each((_i, el) => {
     const refCons = $(el).val() as string;
     if (!refCons) return;
 
-    // Find the sibling orgCons input in the same td
     const td = $(el).closest("td");
     const orgCons = td.find("input[id*='_orgCons']").val() as string || "";
-
-    // The row context - go up to tr
     const row = $(el).closest("tr");
 
-    // Procedure type (full name from tooltip div)
+    // Procedure type
     const procDiv = row.find("[id*='panelBlocTypesProc'] div[id*='type_procedure']");
     const procedureRaw = procDiv.text().trim();
 
@@ -121,7 +166,7 @@ export function parseTenders(html: string): ScrapedTender[] {
     const catDiv = row.find("[id*='panelBlocCategorie']");
     const categoryRaw = catDiv.first().text().trim();
 
-    // Publication date (first plain div after category in col-90)
+    // Publication date
     const col90 = row.find("td[headers='cons_ref']");
     const allDivTexts = col90.find("> div").map((_j, d) => $(d).text().trim()).get();
     const pubDateRaw = allDivTexts.find(t => /^\d{2}\/\d{2}\/\d{4}$/.test(t.trim())) || null;
@@ -130,15 +175,14 @@ export function parseTenders(html: string): ScrapedTender[] {
     const referenceEl = row.find("span.ref");
     const reference = referenceEl.first().text().trim();
 
-    // Title/Object — clone and strip hidden tooltip divs before extracting text
+    // Title/Object — strip hidden tooltip divs
     const objDiv = row.find("[id*='panelBlocObjet']").first();
     const objClone = objDiv.clone();
     objClone.find(".info-bulle, .info-suite, [class*='info-bulle']").remove();
     let title = objClone.text().replace(/\s+/g, " ").trim();
-    // Remove "Objet :" prefix and trailing ellipsis
     title = title.replace(/^Objet\s*:\s*/i, "").replace(/\.{2,}$/g, "").trim();
 
-    // Buyer — strip tooltips before extracting text
+    // Buyer — strip tooltips
     const buyerDiv = row.find("[id*='panelBlocDenomination']").first();
     const buyerClone = buyerDiv.clone();
     buyerClone.find(".info-bulle, .info-suite, [class*='info-bulle']").remove();
@@ -168,6 +212,8 @@ export function parseTenders(html: string): ScrapedTender[] {
       buyer,
       executionLocation: location || null,
       portalUrl,
+      estimatedBudget: null,
+      provisionalGuaranteeAmount: null,
     });
   });
 
@@ -179,7 +225,7 @@ export async function scrapePortalTenders(buyerFilter: string): Promise<{
   totalFound: number;
   filtered: number;
 }> {
-  // Step 1: Get initial page with PRADO state
+  // Step 1: Get initial page with PRADO state + cookies
   const { cookies, pradoState } = await getInitialPage();
 
   // Step 2: POST to get 500 results per page
@@ -188,10 +234,19 @@ export async function scrapePortalTenders(buyerFilter: string): Promise<{
   // Step 3: Parse all tenders
   const allTenders = parseTenders(bigPageHtml);
 
-  // Step 4: Filter by buyer name (exact match)
+  // Step 4: Filter by buyer name (exact match, case-insensitive)
   const filterUpper = buyerFilter.toUpperCase().trim();
   const filtered = allTenders.filter(t =>
     t.buyer.toUpperCase().trim() === filterUpper
+  );
+
+  // Step 5: Enrich each filtered tender with financial data from its detail page
+  await Promise.all(
+    filtered.map(async (tender) => {
+      const detail = await fetchTenderDetail(tender.refConsultation, tender.orgAcronyme);
+      tender.estimatedBudget = detail.estimatedBudget;
+      tender.provisionalGuaranteeAmount = detail.provisionalGuaranteeAmount;
+    })
   );
 
   return {
