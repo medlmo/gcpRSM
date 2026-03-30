@@ -1,0 +1,12 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.ts
+
+[1G[0KRe-optimizing dependencies because lockfile has changed
+11:10:16 PM [express] serving on port 5000
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+11:10:23 PM [express] GET /api/auth/me 401 in 2ms :: {"error":"Unauthorized"}
+11:10:34 PM [express] GET /api/auth/me 401 in 1ms :: {"error":"Unauthorized"}
+11:10:39 PM [express] GET /api/auth/me 304 in 8ms :: {"id":"12508ae4-7e0c-4bf4-899f-76a50fb4459d","us…
+11:10:40 PM [express] GET /api/dashboard/stats 304 in 8ms :: {"totalTenders":"2","activeTenders":"1",…

@@ -385,10 +385,27 @@ export default function TenderDetail() {
                   {new Date(tender.submissionDeadline).toLocaleString('fr-FR', {
                     dateStyle: 'long',
                     timeStyle: 'short',
+                    timeZone: 'Africa/Casablanca',
                   })}
                 </p>
               </div>
             </div>
+
+            {tender.openingDate && (
+              <div>
+                <label className="text-sm text-muted-foreground">Date et heure d'ouverture des plis</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-base" data-testid="text-openingDate">
+                    {new Date(tender.openingDate).toLocaleString('fr-FR', {
+                      dateStyle: 'long',
+                      timeStyle: 'short',
+                      timeZone: 'Africa/Casablanca',
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

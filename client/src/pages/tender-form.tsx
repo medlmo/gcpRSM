@@ -155,7 +155,7 @@ export default function TenderForm() {
           : "",
         currency: tender.currency,
         status: normalizeStatus(tender.status),
-        publicationDate: formatDateInput(tender.publicationDate),
+        publicationDate: formatDateInput(tender.publicationDate ?? undefined),
         submissionDeadline: formatDateTimeLocalInput(tender.submissionDeadline),
         lotsNumber: tender.lotsNumber ?? undefined,
         provisionalGuaranteeAmount: tender.provisionalGuaranteeAmount
@@ -232,7 +232,7 @@ export default function TenderForm() {
       title: data.title.trim(),
       status: normalizeStatus(data.status),
       procedureType: normalizeProcedureType(data.procedureType),
-      submissionDeadline: toISOStringIfPossible(data.submissionDeadline),
+      submissionDeadline: toISOStringIfPossible(data.submissionDeadline) ?? new Date().toISOString(),
       estimatedBudget: optionalString(data.estimatedBudget),
       provisionalGuaranteeAmount: optionalString(
         data.provisionalGuaranteeAmount,

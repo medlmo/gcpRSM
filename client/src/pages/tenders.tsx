@@ -480,6 +480,7 @@ export default function Tenders() {
                                 ).toLocaleString("fr-FR", {
                                   dateStyle: "long",
                                   timeStyle: "short",
+                                  timeZone: "Africa/Casablanca",
                                 })}
                                 <span className="text-xs text-muted-foreground ml-2">
                                   (

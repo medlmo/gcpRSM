@@ -724,6 +724,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? new Date(t.submissionDeadline)
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+          const openingDate = t.openingDate ? new Date(t.openingDate) : undefined;
+
           await storage.createTender({
             reference: t.reference,
             title: t.title,
@@ -738,11 +740,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             documentUrl: t.portalUrl,
             estimatedBudget: t.estimatedBudget ?? undefined,
             currency: "MAD",
-            openingDate: undefined,
+            openingDate,
             technicalCriteria: undefined,
             financialCriteria: undefined,
             createdBy: req.session.userId!,
-            lotsNumber: undefined,
+            lotsNumber: t.lotsNumber ?? undefined,
             provisionalGuaranteeAmount: t.provisionalGuaranteeAmount ?? undefined,
             openingLocation: undefined,
           });
