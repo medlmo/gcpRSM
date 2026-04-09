@@ -31,12 +31,19 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 const PgStore = connectPgSimple(session);
 
+// In production we must have a strong SESSION_SECRET, otherwise refuse to start.
+const rawSessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === "production" && !rawSessionSecret) {
+  throw new Error("SESSION_SECRET must be set in production");
+}
+const sessionSecret = rawSessionSecret || "dev-secret-change-in-production";
+
 app.use(session({
   store: new PgStore({
     pool: pool,
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -62,8 +69,10 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      // En production, ne pas logguer les bodies complets pour éviter les fuites.
+      if (capturedJsonResponse && app.get("env") === "development") {
+        const snippet = JSON.stringify(capturedJsonResponse);
+        logLine += ` :: ${snippet.slice(0, 200)}`;
       }
 
       if (logLine.length > 80) {

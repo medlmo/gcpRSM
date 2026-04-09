@@ -3,15 +3,16 @@ import * as cheerio from "cheerio";
 const PORTAL_BASE = "https://www.marchespublics.gov.ma";
 const SEARCH_FORM_URL = `${PORTAL_BASE}/index.php?page=entreprise.EntrepriseAdvancedSearch&searchAnnCons`;
 
-// ── Hardcoded identifiers for REGION DE SOUS-MASSA ─────────────────────────
-// Discovered via portal cascade:
-//   classification = 2  →  Collectivité locale
-//   organismesNames = "f9f"  →  REGION de SOUS-MASSA-DRAA (parent org)
-//   entityPurchaseNames = "246"  →  REGION DE SOUS-MASSA (the actual buyer)
-const BUYER_CLASSIFICATION = "2";
-const BUYER_ORG_ACRONYME = "f9f";
-const BUYER_ENTITY_ID = "246";
-const EXPECTED_BUYER_NAME = "REGION DE SOUS-MASSA";
+// ── Identifiants pour REGION DE SOUS-MASSA (configurable via .env) ─────────
+// Discovered via portal cascade, mais surchargés par les variables d'environnement
+// pour éviter de recompiler en cas de changement.
+const BUYER_CLASSIFICATION = process.env.PORTAL_BUYER_CLASSIFICATION || "2";
+const BUYER_ORG_ACRONYME = process.env.PORTAL_BUYER_ORG_ACRONYME || "f9f";
+const BUYER_ENTITY_ID = process.env.PORTAL_BUYER_ENTITY_ID || "246";
+const EXPECTED_BUYER_NAME = (process.env.PORTAL_BUYER_NAME || "REGION DE SOUS-MASSA")
+  .toUpperCase()
+  .trim()
+  .replace(/\s+/g, " ");
 
 // In practice, the filtered result set is usually <= 30 AOs.
 // Keep this small to reduce payload size and avoid portal timeouts.
@@ -118,14 +119,64 @@ function parseDate(dateStr: string): string | null {
 
 function parseDateTimeToLocalIso(text: string): string | null {
   if (!text) return null;
-  const m = text.trim().match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  // Supports both "10:00" and "10H00" / "10h00" (French portal notation)
+  // and optional "à" prefix before the time: "02/04/2026 à 10H00"
+  const m = text
+    .trim()
+    .match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(?:à\s*)?(\d{1,2})\s*[:Hh]\s*(\d{2}))?/);
   if (!m) return null;
   const [, dd, mm, yyyy, hhRaw, minRaw] = m;
   const hh = hhRaw ? String(hhRaw).padStart(2, "0") : "00";
   const min = minRaw ?? "00";
-  // Intentionally no timezone suffix so `new Date(...)` treats it as local time
-  // (matches portal's displayed local time in most deployments).
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+  // Morocco is UTC+1 year-round (no DST since 2018). Append the explicit offset
+  // so Node.js does not interpret the value as UTC and shift the time by 1 hour.
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+01:00`;
+}
+
+function normalizeSpaces(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function extractDateTimeNearKeyword(text: string, keywordRegex: RegExp): string | null {
+  const normalized = normalizeSpaces(text);
+  const dateTimePattern = /(\d{2}\/\d{2}\/\d{4}(?:\s*(?:à)?\s*\d{1,2}\s*[:Hh]\s*\d{2})?)/;
+
+  const keywordMatch = normalized.match(keywordRegex);
+  if (!keywordMatch || keywordMatch.index === undefined) return null;
+
+  const start = keywordMatch.index;
+  const window = normalized.slice(start, start + 280);
+  const dt = window.match(dateTimePattern);
+  return dt ? dt[1] : null;
+}
+
+function extractDateTimeFromDeadlineTd(td: cheerio.Cheerio<any>): string | null {
+  // 1) Preferred block
+  const line = td.find(".cloture-line").first().text().replace(/\s+/g, " ").trim();
+  const lineIso = parseDateTimeToLocalIso(line);
+  if (lineIso) return lineIso;
+
+  // 2) Some layouts split date/time in nested spans/divs
+  const rawTdText = td.text().replace(/\s+/g, " ").trim();
+  const tdIso = parseDateTimeToLocalIso(rawTdText);
+  if (tdIso) return tdIso;
+
+  // 3) Sometimes the full datetime is in tooltip attributes
+  const titleLike =
+    td.find("[title*='/'], [data-original-title*='/'], [aria-label*='/']").first();
+  if (titleLike.length) {
+    const attrText =
+      titleLike.attr("title")
+      ?? titleLike.attr("data-original-title")
+      ?? titleLike.attr("aria-label")
+      ?? "";
+    const attrIso = parseDateTimeToLocalIso(attrText.replace(/\s+/g, " ").trim());
+    if (attrIso) return attrIso;
+  }
+
+  // 4) Last resort: keep date with 00:00 if no hour is present anywhere
+  const dateOnly = rawTdText.match(/(\d{2}\/\d{2}\/\d{4})/);
+  return dateOnly ? parseDateTimeToLocalIso(dateOnly[1]) : null;
 }
 
 function extractLabeledValue($: cheerio.CheerioAPI, labelRegex: RegExp): string | null {
@@ -159,7 +210,8 @@ function parseLotsNumberFromText(text: string | null): number | null {
   if (!text) return null;
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return null;
-  if (clean === "-" || clean === "—") return 1;
+  // Match any dash-like character: hyphen, en-dash, em-dash, minus sign
+  if (/^[\u002D\u2013\u2014\u2212]+$/.test(clean)) return 1;
   const m = clean.match(/(\d+)/);
   if (!m) return null;
   const n = parseInt(m[1], 10);
@@ -181,21 +233,23 @@ function extractLotsTextFromDetailPage($: cheerio.CheerioAPI): string | null {
   }).first();
   if (labelEl.length) {
     const next = labelEl.next().text().replace(/\s+/g, " ").trim();
-    if (next) return next;
+    if (next && parseLotsNumberFromText(next) !== null) return next;
     const parentNext = labelEl.parent().next().text().replace(/\s+/g, " ").trim();
-    if (parentNext) return parentNext;
+    if (parentNext && parseLotsNumberFromText(parentNext) !== null) return parentNext;
     const parentText = labelEl.parent().text().replace(/\s+/g, " ").trim();
     // Sometimes label + value are in the same container: "Allotissement : -"
-    const sameContainerMatch = parentText.match(/allotissement\s*:?\s*([-\d]+)/i);
+    const sameContainerMatch = parentText.match(/allotissement\s*:?\s*([-\u2013\u2014\u2212\d]+)/i);
     if (sameContainerMatch) return sameContainerMatch[1];
   }
 
   // 3) Last resort: regex on full page text
+  // dashOrDigit is already a character class [...], so use it directly with a quantifier.
   const full = $("body").text().replace(/\s+/g, " ").trim();
+  const dashOrDigit = "[-\u2013\u2014\u2212\\d]";
   const m =
-    full.match(/allotissement\s*:?\s*([-\d]{1,4})/i) ??
-    full.match(/nombre\s+de\s+lots\s*:?\s*([-\d]{1,4})/i) ??
-    full.match(/\bnbr\s+de\s+lots\b\s*:?\s*([-\d]{1,4})/i);
+    full.match(new RegExp(`allotissement\\s*:?\\s*(${dashOrDigit}{1,4})`, "i")) ??
+    full.match(new RegExp(`nombre\\s+de\\s+lots\\s*:?\\s*(${dashOrDigit}{1,4})`, "i")) ??
+    full.match(new RegExp(`\\bnbr\\s+de\\s+lots\\b\\s*:?\\s*(${dashOrDigit}{1,4})`, "i"));
   return m ? m[1] : null;
 }
 
@@ -410,8 +464,7 @@ export function parseTenders(html: string): ScrapedTender[] {
 
     // Deadline
     const deadlineTd = row.find("td[headers='cons_dateEnd']");
-    const deadlineText = deadlineTd.find(".cloture-line").first().text().replace(/\s+/g, " ").trim();
-    const deadlineIso = parseDateTimeToLocalIso(deadlineText);
+    const deadlineIso = extractDateTimeFromDeadlineTd(deadlineTd);
 
     // Execution location
     const locTd = row.find("td[headers='cons_lieuExe']");
@@ -449,6 +502,7 @@ async function fetchTenderDetail(
 ): Promise<{
   estimatedBudget: string | null;
   provisionalGuaranteeAmount: string | null;
+  submissionDeadline: string | null;
   openingDate: string | null;
   lotsNumber: number | null;
 }> {
@@ -463,6 +517,7 @@ async function fetchTenderDetail(
       return {
         estimatedBudget: null,
         provisionalGuaranteeAmount: null,
+        submissionDeadline: null,
         openingDate: null,
         lotsNumber: null,
       };
@@ -470,6 +525,7 @@ async function fetchTenderDetail(
 
     const html = await res.text();
     const $ = cheerio.load(html);
+    const detailText = normalizeSpaces($("body").text());
 
     const estSpan = $("span[id*='labelReferentielZoneText'].content-bloc").first();
     const estimatedBudget = estSpan.length ? parseMADAmount(estSpan.text()) : null;
@@ -477,20 +533,46 @@ async function fetchTenderDetail(
     const cautionSpan = $("span[id*='cautionProvisoire']").first();
     const provisionalGuaranteeAmount = cautionSpan.length ? parseMADAmount(cautionSpan.text()) : null;
 
+    // Submission deadline (date limite de remise des plis) from detail page is
+    // usually more reliable than list view for preserving hour.
+    let submissionDeadlineText =
+      extractLabeledValue($, /date\s+limite\s+de\s+remise\s+des\s+plis/i)
+      ?? extractLabeledValue($, /date\s+limite\s+de\s+r[eé]ception\s+des\s+offres/i)
+      ?? extractLabeledValue($, /remise\s+des\s+plis/i);
+    if (!submissionDeadlineText) {
+      submissionDeadlineText =
+        extractDateTimeNearKeyword(detailText, /date\s+limite\s+de\s+remise\s+des\s+plis/i)
+        ?? extractDateTimeNearKeyword(detailText, /date\s+limite\s+de\s+r[eé]ception\s+des\s+offres/i)
+        ?? extractDateTimeNearKeyword(detailText, /remise\s+des\s+plis/i);
+    }
+    const submissionDeadline = submissionDeadlineText ? parseDateTimeToLocalIso(submissionDeadlineText) : null;
+
     // Opening date/time (ouverture des plis)
-    const openingText =
+    let openingText =
       extractLabeledValue($, /ouverture\s+des\s+plis/i)
       ?? extractLabeledValue($, /date\s+et\s+heure\s+d['’]ouverture/i)
       ?? extractLabeledValue($, /séance\s+d['’]ouverture/i);
+    if (!openingText) {
+      openingText =
+        extractDateTimeNearKeyword(detailText, /ouverture\s+des\s+plis/i)
+        ?? extractDateTimeNearKeyword(detailText, /date\s+et\s+heure\s+d['’]ouverture/i)
+        ?? extractDateTimeNearKeyword(detailText, /séance\s+d['’]ouverture/i);
+    }
     const openingDate = openingText ? parseDateTimeToLocalIso(openingText) : null;
 
     // Lots / allotissement
     const lotsText = extractLotsTextFromDetailPage($);
     const lotsNumber = parseLotsNumberFromText(lotsText);
 
-    return { estimatedBudget, provisionalGuaranteeAmount, openingDate, lotsNumber };
+    return { estimatedBudget, provisionalGuaranteeAmount, submissionDeadline, openingDate, lotsNumber };
   } catch {
-    return { estimatedBudget: null, provisionalGuaranteeAmount: null, openingDate: null, lotsNumber: null };
+    return {
+      estimatedBudget: null,
+      provisionalGuaranteeAmount: null,
+      submissionDeadline: null,
+      openingDate: null,
+      lotsNumber: null,
+    };
   }
 }
 
@@ -527,7 +609,7 @@ export async function scrapePortalTenders(_buyerFilter: string): Promise<{
   //         then switch to PAGE_SIZE to get all in one response
   const { html } = await submitSearch(cookies, state2, PAGE_SIZE);
 
-  // Step 4: Parse — no client-side filtering needed (server already filtered)
+  // Step 4: Parse — filter by exact buyer label (case-insensitive, normalized spaces)
   const tenders = parseTenders(html).filter((t) => {
     const buyerNorm = t.buyer.toUpperCase().trim().replace(/\s+/g, " ");
     return buyerNorm === EXPECTED_BUYER_NAME;
@@ -541,6 +623,10 @@ export async function scrapePortalTenders(_buyerFilter: string): Promise<{
     const detail = await fetchTenderDetail(tender.refConsultation, tender.orgAcronyme);
     tender.estimatedBudget = detail.estimatedBudget;
     tender.provisionalGuaranteeAmount = detail.provisionalGuaranteeAmount;
+    // Prefer detail-page deadline to avoid losing hour information.
+    if (detail.submissionDeadline) {
+      tender.submissionDeadline = detail.submissionDeadline;
+    }
     tender.openingDate = detail.openingDate;
     tender.lotsNumber = detail.lotsNumber;
     await sleep(DETAIL_DELAY_MS);

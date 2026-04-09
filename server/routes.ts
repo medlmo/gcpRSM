@@ -23,6 +23,35 @@ import { scrapePortalTenders } from "./scraper";
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
+// Lightweight in-memory limiter for expensive import endpoint.
+const importRateWindowMs = 60 * 1000; // 1 minute
+const importRateMaxRequests = 3; // max imports per minute per key
+const importRateStore = new Map<string, number[]>();
+
+function getImportRateKey(req: Request): string {
+  const userPart = req.session.userId ? `u:${req.session.userId}` : "u:anon";
+  const ipPart = req.ip || (req.headers["x-forwarded-for"] as string) || "ip:unknown";
+  return `${userPart}|${ipPart}`;
+}
+
+function importRateLimit(req: Request, res: Response, next: NextFunction) {
+  const key = getImportRateKey(req);
+  const now = Date.now();
+  const recent = (importRateStore.get(key) || []).filter(ts => now - ts < importRateWindowMs);
+
+  if (recent.length >= importRateMaxRequests) {
+    const retryAfterSec = Math.max(1, Math.ceil((importRateWindowMs - (now - recent[0])) / 1000));
+    res.setHeader("Retry-After", String(retryAfterSec));
+    return res.status(429).json({
+      error: `Trop de tentatives d'import. Réessayez dans ${retryAfterSec} seconde(s).`,
+    });
+  }
+
+  recent.push(now);
+  importRateStore.set(key, recent);
+  next();
+}
+
 const multerStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
@@ -90,10 +119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      
-      const users = await storage.getAllUsers();
-      const user = users.find(u => u.email === email);
-      
+
+      const user = await storage.getUserByEmail(email);
+
       if (!user || !(await verifyPassword(password, user.password))) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -649,16 +677,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Notifications
-  app.get("/api/notifications/:userId", async (req, res) => {
+  // Always use the authenticated user for notifications; avoid IDOR on userId.
+  app.get("/api/notifications/me", requireAuth, async (req, res) => {
     try {
-      const notifications = await storage.getUserNotifications(req.params.userId);
+      const userId = req.session.userId!;
+      const notifications = await storage.getUserNotifications(userId);
       res.json(notifications);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/notifications", async (req, res) => {
+  app.post("/api/notifications", requireAuth, async (req, res) => {
     try {
       const notificationData = insertNotificationSchema.parse(req.body);
       const notification = await storage.createNotification(notificationData);
@@ -668,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/notifications/:id/read", async (req, res) => {
+  app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
     try {
       const updated = await storage.markNotificationAsRead(req.params.id);
       if (!updated) {
@@ -680,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/notifications/:id", async (req, res) => {
+  app.delete("/api/notifications/:id", requireAuth, async (req, res) => {
     try {
       const deleted = await storage.deleteNotification(req.params.id);
       if (!deleted) {
@@ -693,9 +723,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── IMPORT depuis marchespublics.gov.ma ──────────────────────────────────
-  app.post("/api/import/marchespublics", requireAuth, async (req, res) => {
+  app.post("/api/import/marchespublics", requireAuth, importRateLimit, async (req, res) => {
     try {
-      const { buyerFilter = "SOUSS-MASSA", dryRun = false } = req.body as {
+      const { buyerFilter = "REGION DE SOUS-MASSA", dryRun = false } = req.body as {
         buyerFilter?: string;
         dryRun?: boolean;
       };
@@ -765,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Preview only – no import
   app.get("/api/import/marchespublics/preview", requireAuth, async (req, res) => {
     try {
-      const buyerFilter = (req.query.buyerFilter as string) || "SOUSS-MASSA";
+      const buyerFilter = (req.query.buyerFilter as string) || "REGION DE SOUS-MASSA";
       const result = await scrapePortalTenders(buyerFilter);
       res.json(result);
     } catch (error: any) {

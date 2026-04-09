@@ -46,7 +46,7 @@ type BidWithEval = Bid & {
   isRetained: boolean
   rank: number | null
   isMieuxDisante: boolean
-  ecartEstimation: number
+  ecartReference: number
 }
 
 function evaluateBids(
@@ -63,8 +63,7 @@ function evaluateBids(
     const isExcessive = amount > upperLimit
     const isAbnormallyLow = amount < lowerLimit
     const isRetained = !isExcessive && !isAbnormallyLow
-    const ecartEstimation = estimatedBudget > 0 ? ((amount - estimatedBudget) / estimatedBudget) * 100 : 0
-    return { ...bid, amount, isExcessive, isAbnormallyLow, isRetained, rank: null, isMieuxDisante: false, ecartEstimation }
+    return { ...bid, amount, isExcessive, isAbnormallyLow, isRetained, rank: null, isMieuxDisante: false, ecartReference: 0 }
   })
 
   const retained = classified.filter((b) => b.isRetained)
@@ -77,6 +76,9 @@ function evaluateBids(
 
   if (prixDeReference !== null) {
     const pr = prixDeReference
+    classified.forEach((b) => {
+      b.ecartReference = pr > 0 ? ((b.amount - pr) / pr) * 100 : 0
+    })
     const belowOrEqual = retained.filter((b) => b.amount <= pr).sort((a, b) => b.amount - a.amount)
     const above = retained.filter((b) => b.amount > pr).sort((a, b) => a.amount - b.amount)
     const ranked = [...belowOrEqual, ...above]
@@ -504,7 +506,7 @@ export default function Bids() {
                     <th className="text-left p-3 font-medium text-muted-foreground">Concurrent</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">Offre ({currency})</th>
                     <th className="text-right p-3 font-medium text-muted-foreground">Écart</th>
-                    <th className="text-center p-3 font-medium text-muted-foreground">Qualification</th>
+                    <th className="text-center p-3 font-medium text-muted-foreground">Statut</th>
                     <th className="text-center p-3 font-medium text-muted-foreground">Désignation</th>
                   </tr>
                 </thead>
@@ -544,9 +546,9 @@ export default function Bids() {
                           {bid.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}
                         </td>
                         <td className={`p-3 text-right font-mono text-xs ${
-                          bid.ecartEstimation > 0 ? "text-orange-600" : bid.ecartEstimation < 0 ? "text-blue-600" : "text-muted-foreground"
+                          bid.ecartReference > 0 ? "text-orange-600" : bid.ecartReference < 0 ? "text-blue-600" : "text-muted-foreground"
                         }`} data-testid={`eval-ecart-${bid.id}`}>
-                          {estimation > 0 ? fmtPct(bid.ecartEstimation) : "—"}
+                          {prixDeReference !== null ? fmtPct(bid.ecartReference) : "—"}
                         </td>
                         <td className="p-3 text-center">
                           {bid.isExcessive ? (

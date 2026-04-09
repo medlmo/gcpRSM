@@ -267,27 +267,33 @@ export default function Tenders() {
     setCategoryFilter("all");
   };
 
-  const filteredTenders = tenders?.filter((tender) => {
-    const normalizedStatus = normalizeStatus(tender.status);
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      !q ||
-      tender.title.toLowerCase().includes(q) ||
-      tender.reference.toLowerCase().includes(q) ||
-      tender.procedureType.toLowerCase().includes(q) ||
-      normalizeProcedureType(tender.procedureType).toLowerCase().includes(q) ||
-      (tender.description ?? "").toLowerCase().includes(q) ||
-      (tender.openingLocation ?? "").toLowerCase().includes(q) ||
-      (tender.executionLocation ?? "").toLowerCase().includes(q) ||
-      tender.category.toLowerCase().includes(q);
+  const filteredTenders = tenders
+    ?.filter((tender) => {
+      const normalizedStatus = normalizeStatus(tender.status);
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !q ||
+        tender.title.toLowerCase().includes(q) ||
+        tender.reference.toLowerCase().includes(q) ||
+        tender.procedureType.toLowerCase().includes(q) ||
+        normalizeProcedureType(tender.procedureType).toLowerCase().includes(q) ||
+        (tender.description ?? "").toLowerCase().includes(q) ||
+        (tender.openingLocation ?? "").toLowerCase().includes(q) ||
+        (tender.executionLocation ?? "").toLowerCase().includes(q) ||
+        tender.category.toLowerCase().includes(q);
 
-    const matchesStatus =
-      statusFilter === "all" || normalizedStatus === statusFilter;
-    const matchesCategory =
-      categoryFilter === "all" || tender.category === categoryFilter;
+      const matchesStatus =
+        statusFilter === "all" || normalizedStatus === statusFilter;
+      const matchesCategory =
+        categoryFilter === "all" || tender.category === categoryFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+      return matchesSearch && matchesStatus && matchesCategory;
+    })
+    .sort((a, b) => {
+      const aTs = a.submissionDeadline ? new Date(a.submissionDeadline).getTime() : 0;
+      const bTs = b.submissionDeadline ? new Date(b.submissionDeadline).getTime() : 0;
+      return bTs - aTs; // Descending by Date & heure limite
+    });
 
   return (
     <div className="space-y-6">
